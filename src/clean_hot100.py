@@ -4,8 +4,8 @@ import pandas as pd
 from download_hot100 import HOT100_OUTPUT
 
 OUTPUT_DIR = Path("data/processed")
-START_WEEK = pd.Timestamp("1958-08-04")
-END_WEEK = pd.Timestamp("2026-08-01")
+START_WEEK = "1958-08-04"
+END_WEEK = "2026-08-01"
 
 
 def clean_hot100_chart(
@@ -76,10 +76,13 @@ def clean_hot100_song(
 
 def filter_hot100_song(
     hot100_song_df: pd.DataFrame,
-    start_wk: pd.Timestamp = START_WEEK,
-    end_wk: pd.Timestamp = END_WEEK,
+    start_wk: str | pd.Timestamp = START_WEEK,
+    end_wk: str | pd.Timestamp = END_WEEK,
     save: bool = True,
 ) -> pd.DataFrame:
+    start_wk = pd.Timestamp(start_wk)
+    end_wk = pd.Timestamp(end_wk)
+
     filtered_hot100_song_df = hot100_song_df[
         (hot100_song_df["chart_weeks"].str[0] >= start_wk)
         & (hot100_song_df["chart_weeks"].str[-1] < end_wk)
@@ -88,7 +91,7 @@ def filter_hot100_song(
     if save:
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         filtered_hot100_song_df.to_parquet(
-            OUTPUT_DIR / "hot-100-song_{start_wk:%Y%m%d}_{end_wk:%Y%m%d}.parquet",
+            OUTPUT_DIR / f"hot-100-song_{start_wk:%Y%m%d}_{end_wk:%Y%m%d}.parquet",
             index=False,
         )
 
