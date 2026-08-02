@@ -1,7 +1,6 @@
 from pathlib import Path
-from numpy import save
 import pandas as pd
-from download_hot100 import HOT100_OUTPUT
+from .download_hot100 import HOT100_OUTPUT
 
 OUTPUT_DIR = Path("data/processed")
 START_WEEK = "1958-08-04"
@@ -21,6 +20,8 @@ def clean_hot100_chart(
     if save:
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         hot100_chart_df.to_parquet(OUTPUT_DIR / output_name, index=False)
+
+    print(f"{len(hot100_chart_df)} entries loaded from {HOT100_OUTPUT}.")
 
     return hot100_chart_df
 
@@ -71,6 +72,8 @@ def clean_hot100_song(
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         hot100_song_df.to_parquet(OUTPUT_DIR / output_name, index=False)
 
+    print(f"{len(hot100_song_df)} songs recorded in {HOT100_OUTPUT}.")
+
     return hot100_song_df
 
 
@@ -95,22 +98,20 @@ def filter_hot100_song(
             index=False,
         )
 
+    print(
+        f"{len(filtered_hot100_song_df)} songs on Billboard Hot-100 from {start_wk:%Y%m%d} to {end_wk:%Y%m%d}."
+    )
     return filtered_hot100_song_df
 
 
 def main():
     hot100_chart_df = clean_hot100_chart()
-    print(f"{len(hot100_chart_df)} entries loaded from {HOT100_OUTPUT}.")
 
     hot100_song_df = clean_hot100_song()
-    print(f"{len(hot100_song_df)} songs recorded in {HOT100_OUTPUT}.")
 
-    start_wk = pd.Timestamp("2000-01-01")
-    end_wk = pd.Timestamp("2026-08-01")
+    start_wk = "2000-01-01"
+    end_wk = "2026-08-01"
     filtered_hot100_song_df = filter_hot100_song(hot100_song_df, start_wk, end_wk)
-    print(
-        f"{len(filtered_hot100_song_df)} songs on Billboard Hot-100 from {start_wk:%Y%m%d} to {end_wk:%Y%m%d}."
-    )
 
 
 if __name__ == "__main__":
