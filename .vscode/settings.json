@@ -1,0 +1,4 @@
+{
+    // Use the project root as the notebook working directory
+    "jupyter.notebookFileRoot": "${workspaceFolder}",
+}
