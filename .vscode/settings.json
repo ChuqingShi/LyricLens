@@ -1,4 +1,10 @@
 {
     // Use the project root as the notebook working directory
     "jupyter.notebookFileRoot": "${workspaceFolder}",
+
+    // Format Python with Black
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true
+    },
 }
