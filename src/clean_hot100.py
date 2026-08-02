@@ -1,4 +1,5 @@
 from pathlib import Path
+from numpy import save
 import pandas as pd
 from download_hot100 import HOT100_OUTPUT
 
@@ -7,7 +8,9 @@ START_WEEK = pd.Timestamp("1958-08-04")
 END_WEEK = pd.Timestamp("2026-08-01")
 
 
-def clean_hot100_chart() -> pd.DataFrame:
+def clean_hot100_chart(
+    save: bool = True, output_name: str = "hot-100-chart_current.parquet"
+) -> pd.DataFrame:
     hot100_chart_df = pd.read_csv(HOT100_OUTPUT)
 
     hot100_chart_df["chart_week"] = pd.to_datetime(hot100_chart_df["chart_week"])
@@ -15,13 +18,16 @@ def clean_hot100_chart() -> pd.DataFrame:
 
     hot100_chart_df["last_week"] = hot100_chart_df["last_week"].replace(0, pd.NA).astype("Int64")
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    hot100_chart_df.to_parquet(OUTPUT_DIR / "hot-100-chart_current.parquet", index=False)
+    if save:
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        hot100_chart_df.to_parquet(OUTPUT_DIR / output_name, index=False)
 
     return hot100_chart_df
 
 
-def clean_hot100_song() -> pd.DataFrame:
+def clean_hot100_song(
+    save: bool = True, output_name: str = "hot-100-song_current.parquet"
+) -> pd.DataFrame:
     hot100_chart_df = pd.read_csv(HOT100_OUTPUT)
     hot100_chart_df["chart_week"] = pd.to_datetime(hot100_chart_df["chart_week"])
 
@@ -61,8 +67,9 @@ def clean_hot100_song() -> pd.DataFrame:
         )
     )
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    hot100_song_df.to_parquet(OUTPUT_DIR / "hot-100-song_current.parquet", index=False)
+    if save:
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        hot100_song_df.to_parquet(OUTPUT_DIR / output_name, index=False)
 
     return hot100_song_df
 
@@ -71,17 +78,19 @@ def filter_hot100_song(
     hot100_song_df: pd.DataFrame,
     start_wk: pd.Timestamp = START_WEEK,
     end_wk: pd.Timestamp = END_WEEK,
+    save: bool = True,
 ) -> pd.DataFrame:
     filtered_hot100_song_df = hot100_song_df[
         (hot100_song_df["chart_weeks"].str[0] >= start_wk)
         & (hot100_song_df["chart_weeks"].str[-1] < end_wk)
     ]
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    filtered_hot100_song_df.to_parquet(
-        OUTPUT_DIR / "hot-100-song_{start_wk:%Y%m%d}_{end_wk:%Y%m%d}.parquet",
-        index=False,
-    )
+    if save:
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        filtered_hot100_song_df.to_parquet(
+            OUTPUT_DIR / "hot-100-song_{start_wk:%Y%m%d}_{end_wk:%Y%m%d}.parquet",
+            index=False,
+        )
 
     return filtered_hot100_song_df
 
