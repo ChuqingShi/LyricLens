@@ -20,6 +20,7 @@ def clean_hot100_chart(
     if save:
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         hot100_chart_df.to_parquet(OUTPUT_DIR / output_name, index=False)
+        print(f"Saved hot100_chart_df to {OUTPUT_DIR / output_name}.")
 
     print(f"{len(hot100_chart_df)} entries loaded from {HOT100_OUTPUT}.")
 
@@ -71,6 +72,7 @@ def clean_hot100_song(
     if save:
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         hot100_song_df.to_parquet(OUTPUT_DIR / output_name, index=False)
+        print(f"Saved hot100_song_df to {OUTPUT_DIR / output_name}.")
 
     print(f"{len(hot100_song_df)} songs recorded in {HOT100_OUTPUT}.")
 
@@ -96,6 +98,9 @@ def filter_hot100_song(
         filtered_hot100_song_df.to_parquet(
             OUTPUT_DIR / f"hot-100-song_{start_wk:%Y%m%d}_{end_wk:%Y%m%d}.parquet",
             index=False,
+        )
+        print(
+            f"Saved filtered_hot100_song_df to {OUTPUT_DIR / f'hot-100-song_{start_wk:%Y%m%d}_{end_wk:%Y%m%d}.parquet'}."
         )
 
     print(
