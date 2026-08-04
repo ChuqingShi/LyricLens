@@ -265,8 +265,8 @@ if __name__ == "__main__":
 
     hot100_song_df = pd.read_parquet(Path(OUTPUT_DIR) / "hot-100-song_current.parquet")
 
-    start_wk = pd.Timestamp("2020-01-01")
-    end_wk = pd.Timestamp("2026-08-01")
+    start_wk = "2020-01-01"
+    end_wk = "2026-08-01"
     filtered_hot100_song_df = filter_hot100_song(hot100_song_df, start_wk=start_wk, end_wk=end_wk)
 
     print("Initializing lyrics generation: removing existing checkpoint.")
@@ -274,7 +274,7 @@ if __name__ == "__main__":
 
     filtered_hot100_lyrics_df = generate_batch_lyrics(
         filtered_hot100_song_df,
-        output_name=f"hot-100-lyrics_{start_wk:%Y%m%d}_{end_wk:%Y%m%d}.parquet",
+        output_name=f"hot-100-lyrics_{start_wk}_{end_wk}.parquet",
     )
     # HOT100_LYRICS_OUTPUT = Path(OUTPUT_DIR) / HOT100_LYRICS_OUTPUT_NAME
     # filtered_hot100_lyrics_df = search_batch_lyrics(filtered_hot100_song_df)
