@@ -67,14 +67,14 @@ def search_song_lyrics(
     return result
 
 
-def load_checkpoint(songs_df: pd.DataFrame, resume: bool = False) -> pd.DataFrame:
+def load_checkpoint(songs_df: pd.DataFrame, resume: bool = True) -> pd.DataFrame:
     """Resume loading data from an existing checkpoint, or loading data from scratch."""
     checkpoint_df = pd.DataFrame()
     num_chpt = 0
 
     if resume and CHECKPOINT_OUTPUT.exists():
         checkpoint_df = pd.read_parquet(CHECKPOINT_OUTPUT)
-        num_chpt = len(checkpoint_df)
+        num_chpt = sum(checkpoint_df["plain_lyrics"].apply(lambda x: x is not pd.NA)) # PROBELM! parquet stores pd.NA and None all as NULL.
         print(f"Resuming {num_chpt} records from {CHECKPOINT_OUTPUT}.")
 
     lyrics_df = songs_df.copy()
@@ -88,7 +88,6 @@ def load_checkpoint(songs_df: pd.DataFrame, resume: bool = False) -> pd.DataFram
 def save_checkpoint(lyrics_df: pd.DataFrame) -> None:
     """Save the current progress."""
     lyrics_df.to_parquet(CHECKPOINT_OUTPUT, index=False)  # rewrite
-    print(f"{len(lyrics_df)} songs saved at {CHECKPOINT_OUTPUT}.")
 
 
 def search_batch_lyrics(
@@ -115,8 +114,10 @@ def search_batch_lyrics(
 
             if count % checkpoint_every == 0:
                 save_checkpoint(lyrics_df)
+                print(f"{count} songs with lyrics saved at {CHECKPOINT_OUTPUT}.")
 
     save_checkpoint(lyrics_df)
+    print(f"{count} songs with lyrics saved at {CHECKPOINT_OUTPUT}.")
     return lyrics_df
 
 
