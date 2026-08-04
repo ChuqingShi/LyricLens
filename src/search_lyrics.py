@@ -79,7 +79,7 @@ def load_checkpoint(songs_df: pd.DataFrame, resume: bool = False) -> pd.DataFram
 
     lyrics_df = songs_df.copy()
     lyrics_df["plain_lyrics"] = pd.NA
-    lyrics_df = pd.concat[checkpoint_df, lyrics_df.iloc[num_chpt:]]
+    lyrics_df = pd.concat([checkpoint_df, lyrics_df.iloc[num_chpt:]])
 
     return lyrics_df
 
@@ -259,7 +259,7 @@ if __name__ == "__main__":
     end_wk = "2021-01-01"
     filtered_hot100_song_df = filter_hot100_song(hot100_song_df, start_wk=start_wk, end_wk=end_wk)
 
-    CHECKPOINT_OUTPUT.unlink()  # clear checkpoint for a fresh start
+    CHECKPOINT_OUTPUT.unlink(missing_ok=True)  # clear checkpoint for a fresh start
     filtered_hot100_lyrics_df = generate_batch_lyrics(
         filtered_hot100_song_df, output_name="hot-100-lyrics_{start_wk}_{end_wk}.parquet"
     )
