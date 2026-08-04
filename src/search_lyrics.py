@@ -149,6 +149,44 @@ def retry_batch_errors(
     return lyrics_0error_df
 
 
+def retry_batch_none(
+    lyrics_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Retry songs whose plain_lyrics value is None."""
+
+    lyrics_0none_df = lyrics_df.copy()
+
+    with requests.Session() as session:
+        session.headers.update(HEADERS)
+
+        none_indices = lyrics_0none_df.index[
+            lyrics_0none_df["plain_lyrics"].isna()
+        ]  # including None and pd.NA, but lyrics_df should not have pd.NA values
+
+        if len(none_indices) == 0:
+            print("All None values have been resolved.")
+
+        print(f"{len(none_indices)} songs have None lyrics before retry.")
+
+        for index in tqdm(none_indices):
+            row = lyrics_0none_df.loc[index]
+            performer_retry = (
+                row["performer"].split(" Featuring ")[0].strip()
+            )  # remove featuring artists
+            lyrics = search_song_lyrics(
+                title=row["title"], performer=performer_retry, session=session
+            )
+            if lyrics is not None:  # could be "<error>"
+                row["performer"] = performer_retry
+                lyrics_0none_df.at[index, "plain_lyrics"] = lyrics
+
+        save_checkpoint(lyrics_0none_df)
+
+    remaining_nones = lyrics_0none_df["plain_lyrics"].isna().sum()
+    print(f"Retry finished. {remaining_nones} Nones remain.")
+    return lyrics_0none_df
+
+
 # def finalize_batch_lyrics(
 #     lyrics_df: pd.DataFrame,
 #     save: bool = True,
@@ -167,5 +205,7 @@ if __name__ == "__main__":
 
     filtered_hot100_lyrics_df = search_batch_lyrics(filtered_hot100_song_df)
     filtered_hot100_lyrics_0error_df = retry_batch_errors(filtered_hot100_lyrics_df)
-    filtered_hot100_lyrics_0error_df.to_parquet(HOT100_WITH_LYRICS_OUTPUT, index=False)
+    filtered_hot100_lyrics_0none_df = retry_batch_none(filtered_hot100_lyrics_0error_df)
+    filtered_hot100_lyrics_0none_0error_df = retry_batch_none(filtered_hot100_lyrics_0none_df)
+    filtered_hot100_lyrics_0none_0error_df.to_parquet(HOT100_WITH_LYRICS_OUTPUT, index=False)
     print(f"Saved final results to {HOT100_WITH_LYRICS_OUTPUT}.")
