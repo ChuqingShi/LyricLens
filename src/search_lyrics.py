@@ -1,18 +1,19 @@
 import requests
 import pandas as pd
+from tqdm.auto import tqdm
+import re
 import random
 import time
-from tqdm.auto import tqdm
-
 from pathlib import Path
 from .clean_hot100 import OUTPUT_DIR, filter_hot100_song
 
 CHECKPOINT_OUTPUT = Path(OUTPUT_DIR) / "checkpoint.parquet"
 HOT100_LYRICS_OUTPUT_NAME = "hot-100-lyrics-new.parquet"
 
-
 LRCLIB_SEARCH_URL = "https://lrclib.net/api/search"
 HEADERS = {"User-Agent": "LyricLens/0.1.0 (your-email@example.com)"}
+
+PATTERN = r"\s+(?:feat(?:uring)?\.?|with|x|&)\s+"  # >=1 spaces + "feat" with optional "uring" with optional "." + >=1 spaces
 
 
 def search_song_lyrics(
@@ -21,15 +22,20 @@ def search_song_lyrics(
     """Search for lyrics of a song using LRCLib API.
     Never raise an exception,  return None if lyrics are not found, return "<error>" if there is an error.
     """
-    track_name = title.strip().title()
-    artist_name = (
-        performer.strip()
-        .title()
-        .replace(" Featuring ", " ")
-        .replace(" With ", " ")
-        .replace(" X ", " ")
-        .replace(" & ", " ")
-    )  # format featuring artists, and collaborators
+    # track_name = title.strip().title()
+    # artist_name = (
+    #     performer.strip()
+    #     .title() # for easy handling afterwards but actually changes original
+    #     .replace(" Featuring ", " ")
+    #     .replace(" With ", " ")
+    #     .replace(" X ", " ")
+    #     .replace(" & ", " ")
+    # )  # format featuring artists, and collaborators
+    track_name = title.strip()
+    artist_name = re.sub(
+        PATTERN, " ", performer, flags=re.IGNORECASE
+    ).strip()  # ignore upper/lowercase letters when matching
+
     q = f"{track_name} {artist_name}"
 
     client = session or requests  # session for batch_search, requests for single search
@@ -39,7 +45,9 @@ def search_song_lyrics(
     try:
         response = client.get(
             LRCLIB_SEARCH_URL,
-            params={"q": q},
+            params={
+                "q": q
+            },  # q param is tested to give better results than track_name and artist_name
             headers=None if session else HEADERS,
             timeout=(3, 5),  # wait for 3s until connect timeout, 5s until read timeout
         )
@@ -69,15 +77,25 @@ def search_song_lyrics(
 
 def load_checkpoint(songs_df: pd.DataFrame, resume_pos: int = 0) -> pd.DataFrame:
     """Resume loading data from an existing checkpoint, or loading data from scratch."""
+    if resume_pos < 0:
+        raise ValueError("resume_pos must not be negative.")
+
     checkpoint_df = pd.DataFrame()
 
-    if resume_pos > 0 and CHECKPOINT_OUTPUT.exists():
-        checkpoint_df = pd.read_parquet(CHECKPOINT_OUTPUT)
-        print(f"Resuming {resume_pos} records from {CHECKPOINT_OUTPUT}.")
+    if resume_pos > 0:
+        if CHECKPOINT_OUTPUT.exists():
+            checkpoint_df = pd.read_parquet(CHECKPOINT_OUTPUT)
+            print(f"Resuming {resume_pos} records from {CHECKPOINT_OUTPUT}.")
+        else:
+            raise ValueError(
+                "There is no available records for loading. Please check parameter 'resume_pos'."
+            )
 
     lyrics_df = songs_df.copy()
     lyrics_df["plain_lyrics"] = pd.NA
-    lyrics_df = pd.concat([checkpoint_df.iloc[:resume_pos], lyrics_df.iloc[resume_pos:]], ignore_index=True)
+    lyrics_df = pd.concat(
+        [checkpoint_df.iloc[:resume_pos], lyrics_df.iloc[resume_pos:]], ignore_index=True
+    )  # REMARK: parameter 'resume_pos' needs to be properly selected to keep checkpoint_df.iloc[:resume_pos] without pd.NA
     print(f"Loading {len(lyrics_df) - resume_pos} records from scratch.")
 
     return lyrics_df
@@ -86,7 +104,9 @@ def load_checkpoint(songs_df: pd.DataFrame, resume_pos: int = 0) -> pd.DataFrame
 def save_checkpoint(lyrics_df: pd.DataFrame, logging: bool = False) -> None:
     """Save the current progress."""
     lyrics_df.to_parquet(CHECKPOINT_OUTPUT, index=False)  # rewrite
-    num_records = sum(lyrics_df["plain_lyrics"].apply(lambda x: x is not pd.NA))
+    num_records = sum(
+        lyrics_df["plain_lyrics"].apply(lambda x: x is not pd.NA)
+    )  # OK: all pd.NA is from fresh df
     if logging:
         print(f"{num_records} songs with lyrics saved at {CHECKPOINT_OUTPUT}.")
 
@@ -100,7 +120,9 @@ def search_batch_lyrics(
 
     lyrics_df = load_checkpoint(songs_df, resume_pos)
 
-    pending_indices = lyrics_df.index[lyrics_df["plain_lyrics"].apply(lambda x: x is pd.NA)]
+    pending_indices = lyrics_df.index[
+        lyrics_df["plain_lyrics"].apply(lambda x: x is pd.NA)
+    ]  # OK: all pd.NA is added from songs_df not parquet
 
     with requests.Session() as session:
         session.headers.update(HEADERS)
@@ -156,10 +178,12 @@ def retry_batch_error(lyrics_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def primary_performer(performer: str) -> str:
-    preformer = performer.strip().title()
-    for sep in [" Featuring ", " With ", " X ", " & ", ", "]:
-        preformer = preformer.split(sep, 1)[0]
-    return f"{preformer}*"
+    # preformer = performer.strip().title()
+    # for sep in [" Featuring ", " With ", " X ", " & ", ", "]:
+    #     preformer = preformer.split(sep, 1)[0]
+    # return f"{preformer}*"
+    performer = re.split(PATTERN, performer, maxsplit=1, flags=re.IGNORECASE)[0].strip()
+    return f"{performer}*"
 
 
 def retry_batch_none(
@@ -171,7 +195,7 @@ def retry_batch_none(
 
     none_indices = lyrics_0none_df.index[
         lyrics_0none_df["plain_lyrics"].isna()
-    ]  # including None and pd.NA, but lyrics_df should not have pd.NA values
+    ]  # OK: the function is only called after search_batch_lyrics, so lyrics_df should not have pd.NA values.
 
     if none_indices.empty:
         print("All missing lyrics have been resolved.")
@@ -190,8 +214,10 @@ def retry_batch_none(
                 title=row["title"], performer=performer_retry, session=session
             )
             if lyrics is not None:  # could be "<error>"
-                row["performer"] = performer_retry
+                # row["performer"] = performer_retry
                 lyrics_0none_df.at[index, "plain_lyrics"] = lyrics
+
+        time.sleep(random.uniform(0.2, 0.5))
 
     remaining_nones = lyrics_0none_df["plain_lyrics"].isna()
     lyrics_none_df = lyrics_0none_df[remaining_nones]
@@ -229,8 +255,15 @@ def retry_batch_lyrics(
 
         save_checkpoint(lyrics_ready_df)
 
-    lyrics_errors_df = lyrics_ready_df[lyrics_ready_df["plain_lyrics"] == "<error>"]
+    remaining_errors = lyrics_ready_df["plain_lyrics"] == "<error>"
+    lyrics_errors_df = lyrics_ready_df[remaining_errors]
+    lyrics_ready_df = lyrics_ready_df[~remaining_errors]
+    save_checkpoint(lyrics_ready_df)
+
     lyrics_removed_df = pd.concat([lyrics_removed_df, lyrics_errors_df], ignore_index=True)
+    print(
+        f"{len(lyrics_errors_df)} songs still have request errors after {max_retry_time} retries, and are removed."
+    )
     print(
         f"Retry finished. A total of {len(lyrics_removed_df)} songs are removed because no lyrics could be retrieved from LRCLib."
     )
@@ -249,6 +282,7 @@ def generate_batch_lyrics(
         songs_df, resume_pos=resume_pos, checkpoint_every=checkpoint_every
     )
     lyrics_ready_df, _ = retry_batch_lyrics(lyrics_df, max_retry_time=max_retry_time)
+    lyrics_ready_df = lyrics_ready_df.sort_values(["title", "performer"])
     print(f"Successfully retrieved lyrics for {len(lyrics_ready_df)} songs.")
 
     if save:
