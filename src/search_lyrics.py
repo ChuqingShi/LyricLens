@@ -22,7 +22,15 @@ def search_song_lyrics(
     Never raise an exception,  return None if lyrics are not found, return "<error>" if there is an error.
     """
     track_name = title.strip().title()
-    artist_name = performer.strip().title()
+    artist_name = (
+        performer.strip()
+        .title()
+        .replace(" Featuring ", " ")
+        .replace(" With ", " ")
+        .replace(" X ", " ")
+        .replace(" & ", " ")
+    )  # format featuring artists, and collaborators
+    q = f"{track_name} {artist_name}"
 
     client = session or requests  # session for batch_search, requests for single search
 
@@ -31,7 +39,7 @@ def search_song_lyrics(
     try:
         response = client.get(
             LRCLIB_SEARCH_URL,
-            params={"track_name": track_name, "artist_name": artist_name},
+            params={"q": q},
             headers=None if session else HEADERS,
             timeout=(3, 5),  # wait for 3s until connect timeout, 5s until read timeout
         )
@@ -149,42 +157,46 @@ def retry_batch_errors(
     return lyrics_0error_df
 
 
-def retry_batch_none(
-    lyrics_df: pd.DataFrame,
-) -> pd.DataFrame:
-    """Retry songs whose plain_lyrics value is None."""
+# def retry_batch_none(
+#     lyrics_df: pd.DataFrame,
+# ) -> pd.DataFrame:
+#     """Retry songs whose plain_lyrics value is None."""
 
-    lyrics_0none_df = lyrics_df.copy()
+#     lyrics_0none_df = lyrics_df.copy()
 
-    with requests.Session() as session:
-        session.headers.update(HEADERS)
+#     with requests.Session() as session:
+#         session.headers.update(HEADERS)
 
-        none_indices = lyrics_0none_df.index[
-            lyrics_0none_df["plain_lyrics"].isna()
-        ]  # including None and pd.NA, but lyrics_df should not have pd.NA values
+#         none_indices = lyrics_0none_df.index[
+#             lyrics_0none_df["plain_lyrics"].isna()
+#         ]  # including None and pd.NA, but lyrics_df should not have pd.NA values
 
-        if len(none_indices) == 0:
-            print("All None values have been resolved.")
+#         if len(none_indices) == 0:
+#             print("All None values have been resolved.")
 
-        print(f"{len(none_indices)} songs have None lyrics before retry.")
+#         print(f"{len(none_indices)} songs have None lyrics before retry.")
 
-        for index in tqdm(none_indices):
-            row = lyrics_0none_df.loc[index]
-            performer_retry = (
-                row["performer"].split(" Featuring ")[0].strip()
-            )  # remove featuring artists
-            lyrics = search_song_lyrics(
-                title=row["title"], performer=performer_retry, session=session
-            )
-            if lyrics is not None:  # could be "<error>"
-                row["performer"] = performer_retry
-                lyrics_0none_df.at[index, "plain_lyrics"] = lyrics
+#         for index in tqdm(none_indices):
+#             row = lyrics_0none_df.loc[index]
+#             performer_retry = (
+#                 row["performer"]
+#                 .replace(" Featuring ", " ")
+#                 .replace(" With ", " ")
+#                 .replace(" X ", " ")
+#                 .replace(" & ", " ")
+#             )  # remove featuring artists, and collaborators
+#             lyrics = search_song_lyrics(
+#                 title=row["title"], performer=performer_retry, session=session
+#             )
+#             if lyrics is not None:  # could be "<error>"
+#                 row["performer"] = performer_retry
+#                 lyrics_0none_df.at[index, "plain_lyrics"] = lyrics
 
-        save_checkpoint(lyrics_0none_df)
+#         save_checkpoint(lyrics_0none_df)
 
-    remaining_nones = lyrics_0none_df["plain_lyrics"].isna().sum()
-    print(f"Retry finished. {remaining_nones} Nones remain.")
-    return lyrics_0none_df
+#     remaining_nones = lyrics_0none_df["plain_lyrics"].isna().sum()
+#     print(f"Retry finished. {remaining_nones} Nones remain.")
+#     return lyrics_0none_df
 
 
 # def finalize_batch_lyrics(
@@ -205,7 +217,8 @@ if __name__ == "__main__":
 
     filtered_hot100_lyrics_df = search_batch_lyrics(filtered_hot100_song_df)
     filtered_hot100_lyrics_0error_df = retry_batch_errors(filtered_hot100_lyrics_df)
-    filtered_hot100_lyrics_0none_df = retry_batch_none(filtered_hot100_lyrics_0error_df)
-    filtered_hot100_lyrics_0none_0error_df = retry_batch_none(filtered_hot100_lyrics_0none_df)
-    filtered_hot100_lyrics_0none_0error_df.to_parquet(HOT100_WITH_LYRICS_OUTPUT, index=False)
+    filtered_hot100_lyrics_0error_df.to_parquet(HOT100_WITH_LYRICS_OUTPUT, index=False)
+    # filtered_hot100_lyrics_0none_df = retry_batch_none(filtered_hot100_lyrics_0error_df)
+    # filtered_hot100_lyrics_0none_0error_df = retry_batch_none(filtered_hot100_lyrics_0none_df)
+    # filtered_hot100_lyrics_0none_0error_df.to_parquet(HOT100_WITH_LYRICS_OUTPUT, index=False)
     print(f"Saved final results to {HOT100_WITH_LYRICS_OUTPUT}.")
