@@ -265,7 +265,8 @@ if __name__ == "__main__":
     CHECKPOINT_OUTPUT.unlink(missing_ok=True)  # clear checkpoint for a fresh start
 
     filtered_hot100_lyrics_df = generate_batch_lyrics(
-        filtered_hot100_song_df, output_name=f"hot-100-lyrics_{start_wk}_{end_wk}.parquet"
+        filtered_hot100_song_df,
+        output_name=f"hot-100-lyrics_{start_wk:%Y%m%d}_{end_wk:%Y%m%d}.parquet",
     )
     # HOT100_LYRICS_OUTPUT = Path(OUTPUT_DIR) / HOT100_LYRICS_OUTPUT_NAME
     # filtered_hot100_lyrics_df = search_batch_lyrics(filtered_hot100_song_df)
