@@ -8,7 +8,7 @@ from pathlib import Path
 from .clean_hot100 import OUTPUT_DIR, filter_hot100_song
 
 CHECKPOINT_OUTPUT = Path(OUTPUT_DIR) / "checkpoint.parquet"
-HOT100_WITH_LYRICS_OUTPUT = Path(OUTPUT_DIR) / "hot-100-with-lyrics.parquet"
+HOT100_LYRICS_OUTPUT_NAME = "hot-100-lyrics-new.parquet"
 
 
 LRCLIB_SEARCH_URL = "https://lrclib.net/api/search"
@@ -234,32 +234,47 @@ def retry_batch_lyrics(
     return lyrics_ready_df, lyrics_removed_df
 
 
-# def finalize_batch_lyrics(
-#     lyrics_df: pd.DataFrame,
-#     save: bool = True,
-#     output_name: str = HOT100_WITH_LYRICS_OUTPUT
-# ) -> pd.DataFrame:
-#     # remove CHECKPOINT_OUTPUT if it exists
+def generate_batch_lyrics(
+    songs_df: pd.DataFrame, save: bool = True, output_name: str = HOT100_LYRICS_OUTPUT_NAME
+) -> pd.DataFrame:
+    lyrics_df = search_batch_lyrics(songs_df)
+    lyrics_ready_df, lyrics_removed_df = retry_batch_lyrics(lyrics_df)
+    print(f"Removed {len(lyrics_removed_df)} songs with no lyrics records from LRCLib.")
+    print(f"Generated {len(lyrics_ready_df)} songs with lyrics.")
+
+    if save:
+        lyrics_ready_df.to_parquet(Path(OUTPUT_DIR) / output_name, index=False)
+        print(f"Saved final results to {Path(OUTPUT_DIR) / output_name}.")
+
+    CHECKPOINT_OUTPUT.unlink()  # remove checkpoint at last no matter save or not
+    return lyrics_ready_df
+
 
 if __name__ == "__main__":
     from src.clean_hot100 import filter_hot100_song
 
     hot100_song_df = pd.read_parquet(Path(OUTPUT_DIR) / "hot-100-song_current.parquet")
-    filtered_hot100_song_df = filter_hot100_song(
-        hot100_song_df, start_wk="2020-01-01", end_wk="2021-01-01", save=False
+
+    start_wk = "2020-01-01"
+    end_wk = "2021-01-01"
+    filtered_hot100_song_df = filter_hot100_song(hot100_song_df, start_wk=start_wk, end_wk=end_wk)
+
+    CHECKPOINT_OUTPUT.unlink()  # clear checkpoint for a fresh start
+    filtered_hot100_lyrics_df = generate_batch_lyrics(
+        filtered_hot100_song_df, output_name="hot-100-lyrics_{start_wk}_{end_wk}.parquet"
     )
+    # HOT100_LYRICS_OUTPUT = Path(OUTPUT_DIR) / HOT100_LYRICS_OUTPUT_NAME
+    # filtered_hot100_lyrics_df = search_batch_lyrics(filtered_hot100_song_df)
+    # # filtered_hot100_lyrics_0error_df = retry_batch_error(filtered_hot100_lyrics_df)
+    # # filtered_hot100_lyrics_0error_df.to_parquet(HOT100_LYRICS_OUTPUT, index=False)
 
-    filtered_hot100_lyrics_df = search_batch_lyrics(filtered_hot100_song_df)
-    # filtered_hot100_lyrics_0error_df = retry_batch_error(filtered_hot100_lyrics_df)
-    # filtered_hot100_lyrics_0error_df.to_parquet(HOT100_WITH_LYRICS_OUTPUT, index=False)
+    # # filtered_hot100_lyrics_0error_df = retry_batch_error(filtered_hot100_lyrics_df)
+    # # filtered_hot100_lyrics_0none_df = retry_batch_none(filtered_hot100_lyrics_0error_df)
+    # # filtered_hot100_lyrics_0none_0error_df = retry_batch_error(filtered_hot100_lyrics_0none_df)
+    # # filtered_hot100_lyrics_0none_0error_df = filtered_hot100_lyrics_0none_0error_df[filtered_hot100_lyrics_0none_0error_df["plain_lyrics"].notna()]
+    # # filtered_hot100_lyrics_0none_0error_df.to_parquet(HOT100_LYRICS_OUTPUT, index=False)
 
-    # filtered_hot100_lyrics_0error_df = retry_batch_error(filtered_hot100_lyrics_df)
-    # filtered_hot100_lyrics_0none_df = retry_batch_none(filtered_hot100_lyrics_0error_df)
-    # filtered_hot100_lyrics_0none_0error_df = retry_batch_error(filtered_hot100_lyrics_0none_df)
-    # filtered_hot100_lyrics_0none_0error_df = filtered_hot100_lyrics_0none_0error_df[filtered_hot100_lyrics_0none_0error_df["plain_lyrics"].notna()]
-    # filtered_hot100_lyrics_0none_0error_df.to_parquet(HOT100_WITH_LYRICS_OUTPUT, index=False)
-
-    filtered_hot100_lyrics_df = retry_batch_lyrics(filtered_hot100_lyrics_df)
-    filtered_hot100_lyrics_df.to_parquet(HOT100_WITH_LYRICS_OUTPUT, index=False)
-    print(f"Saved final results to {HOT100_WITH_LYRICS_OUTPUT}.")
-    CHECKPOINT_OUTPUT.unlink()
+    # filtered_hot100_lyrics_df = retry_batch_lyrics(filtered_hot100_lyrics_df)
+    # filtered_hot100_lyrics_df.to_parquet(HOT100_LYRICS_OUTPUT, index=False)
+    # print(f"Saved final results to {HOT100_LYRICS_OUTPUT}.")
+    # CHECKPOINT_OUTPUT.unlink()
