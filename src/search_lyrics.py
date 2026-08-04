@@ -67,36 +67,38 @@ def search_song_lyrics(
     return result
 
 
-def load_checkpoint(songs_df: pd.DataFrame, resume: bool = True) -> pd.DataFrame:
+def load_checkpoint(songs_df: pd.DataFrame, resume_pos: int = 0) -> pd.DataFrame:
     """Resume loading data from an existing checkpoint, or loading data from scratch."""
     checkpoint_df = pd.DataFrame()
-    num_chpt = 0
 
-    if resume and CHECKPOINT_OUTPUT.exists():
+    if resume_pos > 0 and CHECKPOINT_OUTPUT.exists():
         checkpoint_df = pd.read_parquet(CHECKPOINT_OUTPUT)
-        num_chpt = sum(checkpoint_df["plain_lyrics"].apply(lambda x: x is not pd.NA)) # PROBELM! parquet stores pd.NA and None all as NULL.
-        print(f"Resuming {num_chpt} records from {CHECKPOINT_OUTPUT}.")
+        print(f"Resuming {resume_pos} records from {CHECKPOINT_OUTPUT}.")
 
     lyrics_df = songs_df.copy()
     lyrics_df["plain_lyrics"] = pd.NA
-    lyrics_df = pd.concat([checkpoint_df, lyrics_df.iloc[num_chpt:]])
-    print(f"Loading {len(lyrics_df) - num_chpt} records from scratch.")
+    lyrics_df = pd.concat([checkpoint_df.iloc[:resume_pos], lyrics_df.iloc[resume_pos:]])
+    print(f"Loading {len(lyrics_df) - resume_pos} records from scratch.")
 
     return lyrics_df
 
 
-def save_checkpoint(lyrics_df: pd.DataFrame) -> None:
+def save_checkpoint(lyrics_df: pd.DataFrame, logging: bool = False) -> None:
     """Save the current progress."""
     lyrics_df.to_parquet(CHECKPOINT_OUTPUT, index=False)  # rewrite
+    num_records = sum(lyrics_df["plain_lyrics"].apply(lambda x: x is not pd.NA))
+    if logging:
+        print(f"{num_records} songs with lyrics saved at {CHECKPOINT_OUTPUT}.")
 
 
 def search_batch_lyrics(
     songs_df: pd.DataFrame,
+    resume_pos: int = 0,
     checkpoint_every: int = 100,
 ) -> pd.DataFrame:
     """Download lyrics for all songs with checkpointing."""
 
-    lyrics_df = load_checkpoint(songs_df)
+    lyrics_df = load_checkpoint(songs_df, resume_pos)
 
     pending_indices = lyrics_df.index[lyrics_df["plain_lyrics"].apply(lambda x: x is pd.NA)]
 
@@ -113,11 +115,9 @@ def search_batch_lyrics(
             )  # wait 200-500ms between requests to avoid rate limiting
 
             if count % checkpoint_every == 0:
-                save_checkpoint(lyrics_df)
-                print(f"{count} songs with lyrics saved at {CHECKPOINT_OUTPUT}.")
+                save_checkpoint(lyrics_df, logging=True)
 
-    save_checkpoint(lyrics_df)
-    print(f"{count} songs with lyrics saved at {CHECKPOINT_OUTPUT}.")
+    save_checkpoint(lyrics_df, logging=True)
     return lyrics_df
 
 
@@ -238,10 +238,17 @@ def retry_batch_lyrics(
 
 
 def generate_batch_lyrics(
-    songs_df: pd.DataFrame, save: bool = True, output_name: str = HOT100_LYRICS_OUTPUT_NAME
+    songs_df: pd.DataFrame,
+    resume_pos: int = 0,
+    checkpoint_every: int = 100,
+    max_retry_time: int = 5,
+    save: bool = True,
+    output_name: str = HOT100_LYRICS_OUTPUT_NAME,
 ) -> pd.DataFrame:
-    lyrics_df = search_batch_lyrics(songs_df)
-    lyrics_ready_df, _ = retry_batch_lyrics(lyrics_df)
+    lyrics_df = search_batch_lyrics(
+        songs_df, resume_pos=resume_pos, checkpoint_every=checkpoint_every
+    )
+    lyrics_ready_df, _ = retry_batch_lyrics(lyrics_df, max_retry_time=max_retry_time)
     print(f"Successfully retrieved lyrics for {len(lyrics_ready_df)} songs.")
 
     if save:
