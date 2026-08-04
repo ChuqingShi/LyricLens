@@ -79,17 +79,16 @@ def load_checkpoint(songs_df: pd.DataFrame, resume_pos: int = 0) -> pd.DataFrame
     """Resume loading data from an existing checkpoint, or loading data from scratch."""
     if resume_pos < 0:
         raise ValueError("resume_pos must not be negative.")
-
-    checkpoint_df = pd.DataFrame()
-
-    if resume_pos > 0:
+    elif resume_pos == 0:
+        print("Initializing lyrics generation: removing existing checkpoint.")
+        CHECKPOINT_OUTPUT.unlink(missing_ok=True)  # clear checkpoint for a fresh start
+        checkpoint_df = pd.DataFrame()
+    else:
         if CHECKPOINT_OUTPUT.exists():
             checkpoint_df = pd.read_parquet(CHECKPOINT_OUTPUT)
             print(f"Resuming {resume_pos} records from {CHECKPOINT_OUTPUT}.")
         else:
-            raise ValueError(
-                "There is no available records for loading. Please check parameter 'resume_pos'."
-            )
+            raise ValueError("There is no exsiting checkpoint. resume_pos must be 0.")
 
     lyrics_df = songs_df.copy()
     lyrics_df["plain_lyrics"] = pd.NA
@@ -303,8 +302,8 @@ if __name__ == "__main__":
     end_wk = "2026-08-01"
     filtered_hot100_song_df = filter_hot100_song(hot100_song_df, start_wk=start_wk, end_wk=end_wk)
 
-    print("Initializing lyrics generation: removing existing checkpoint.")
-    CHECKPOINT_OUTPUT.unlink(missing_ok=True)  # clear checkpoint for a fresh start
+    # print("Initializing lyrics generation: removing existing checkpoint.")
+    # CHECKPOINT_OUTPUT.unlink(missing_ok=True)  # clear checkpoint for a fresh start
 
     filtered_hot100_lyrics_df = generate_batch_lyrics(
         filtered_hot100_song_df,
