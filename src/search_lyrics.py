@@ -115,42 +115,33 @@ def search_batch_lyrics(
     return lyrics_df
 
 
-def retry_batch_errors(
-    lyrics_df: pd.DataFrame,
-    max_retry_time: int = 5,
-) -> pd.DataFrame:
+def retry_batch_error(lyrics_df: pd.DataFrame) -> pd.DataFrame:
     """Retry songs whose plain_lyrics value is '<error>'."""
 
-    if max_retry_time < 1:
-        raise ValueError("max_retry_time must be at least 1.")
-
     lyrics_0error_df = lyrics_df.copy()
+
+    error_indices = lyrics_0error_df.index[lyrics_0error_df["plain_lyrics"] == "<error>"]
+
+    if error_indices.empty:
+        print("All request errors have been resolved.")
+        return lyrics_0error_df
+
+    print(f"{len(error_indices)} songs have request errors before retry.")
 
     with requests.Session() as session:
         session.headers.update(HEADERS)
 
-        for retry_number in range(1, max_retry_time + 1):
-            error_indices = lyrics_0error_df.index[lyrics_0error_df["plain_lyrics"] == "<error>"]
-
-            if len(error_indices) == 0:
-                print("All request errors have been resolved.")
-                break
-
-            print(
-                f"Retry {retry_number}/{max_retry_time}: " f"{len(error_indices)} songs remaining."
+        for index in error_indices:
+            row = lyrics_0error_df.loc[index]
+            lyrics = search_song_lyrics(
+                title=row["title"], performer=row["performer"], session=session
             )
+            if lyrics != "<error>":
+                lyrics_0error_df.at[index, "plain_lyrics"] = lyrics
 
-            for index in error_indices:
-                row = lyrics_0error_df.loc[index]
-                lyrics = search_song_lyrics(
-                    title=row["title"], performer=row["performer"], session=session
-                )
-                if lyrics != "<error>":
-                    lyrics_0error_df.at[index, "plain_lyrics"] = lyrics
+            time.sleep(random.uniform(0.2, 0.5))
 
-                time.sleep(random.uniform(0.2, 0.5))
-
-            save_checkpoint(lyrics_0error_df)
+    save_checkpoint(lyrics_0error_df)
 
     remaining_errors = (lyrics_0error_df["plain_lyrics"] == "<error>").sum()
     print(f"Retry finished. {remaining_errors} errors remain.")
@@ -166,22 +157,23 @@ def primary_performer(performer: str) -> str:
 
 def retry_batch_none(
     lyrics_df: pd.DataFrame,
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Retry songs whose plain_lyrics value is None."""
 
     lyrics_0none_df = lyrics_df.copy()
 
+    none_indices = lyrics_0none_df.index[
+        lyrics_0none_df["plain_lyrics"].isna()
+    ]  # including None and pd.NA, but lyrics_df should not have pd.NA values
+
+    if none_indices.empty:
+        print("All None values have been resolved.")
+        return lyrics_0none_df, pd.DataFrame()
+
+    print(f"{len(none_indices)} songs have None lyrics before retry.")
+
     with requests.Session() as session:
         session.headers.update(HEADERS)
-
-        none_indices = lyrics_0none_df.index[
-            lyrics_0none_df["plain_lyrics"].isna()
-        ]  # including None and pd.NA, but lyrics_df should not have pd.NA values
-
-        if len(none_indices) == 0:
-            print("All None values have been resolved.")
-
-        print(f"{len(none_indices)} songs have None lyrics before retry.")
 
         for index in tqdm(none_indices):
             row = lyrics_0none_df.loc[index]
@@ -193,11 +185,48 @@ def retry_batch_none(
                 row["performer"] = performer_retry
                 lyrics_0none_df.at[index, "plain_lyrics"] = lyrics
 
-        save_checkpoint(lyrics_0none_df)
+    remaining_nones = lyrics_0none_df["plain_lyrics"].isna()
+    lyrics_none_df = lyrics_0none_df[remaining_nones]
+    lyrics_0none_df = lyrics_0none_df[~remaining_nones]
+    save_checkpoint(lyrics_0none_df)
 
-    remaining_nones = lyrics_0none_df["plain_lyrics"].isna().sum()
-    print(f"Retry finished. {remaining_nones} Nones remain.")
-    return lyrics_0none_df
+    print(f"Retry finished. {len(lyrics_none_df)} songs still have None lyrics, and are removed.")
+    return lyrics_0none_df, lyrics_none_df
+
+
+def retry_batch_lyrics(
+    lyrics_df: pd.DataFrame,
+    max_retry_time: int = 5,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Retry songs whose plain_lyrics value is '<error>' or None in a loop."""
+
+    lyrics_ready_df, lyrics_removed_df = retry_batch_none(lyrics_df)
+
+    if max_retry_time < 1:
+        raise ValueError("max_retry_time must be at least 1.")
+
+    for retry_number in range(1, max_retry_time + 1):
+        error_indices = lyrics_ready_df.index[lyrics_ready_df["plain_lyrics"] == "<error>"]
+
+        if error_indices.empty:
+            print("All lyrics have been retrieved.")
+            break
+
+        print(f"Retry {retry_number}/{max_retry_time}: ")
+
+        lyrics_ready_df = retry_batch_error(lyrics_ready_df)  # could result in new None
+        lyrics_ready_df, lyrics_removing_df = retry_batch_none(lyrics_ready_df)
+
+        lyrics_removed_df = pd.concat([lyrics_removed_df, lyrics_removing_df])
+
+        save_checkpoint(lyrics_ready_df)
+
+    lyrics_errors_df = lyrics_ready_df[lyrics_ready_df["plain_lyrics"] == "<error>"]
+    lyrics_removed_df = pd.concat([lyrics_removed_df, lyrics_errors_df])
+    print(
+        f"Retry finished. {len(lyrics_removed_df)} songs still have request errors, and are removed."
+    )
+    return lyrics_ready_df, lyrics_removed_df
 
 
 # def finalize_batch_lyrics(
@@ -210,19 +239,21 @@ def retry_batch_none(
 if __name__ == "__main__":
     from src.clean_hot100 import filter_hot100_song
 
-    # Example usage
     hot100_song_df = pd.read_parquet(Path(OUTPUT_DIR) / "hot-100-song_current.parquet")
     filtered_hot100_song_df = filter_hot100_song(
         hot100_song_df, start_wk="2020-01-01", end_wk="2021-01-01", save=False
     )
 
     filtered_hot100_lyrics_df = search_batch_lyrics(filtered_hot100_song_df)
-    filtered_hot100_lyrics_0error_df = retry_batch_errors(filtered_hot100_lyrics_df)
+    # filtered_hot100_lyrics_0error_df = retry_batch_error(filtered_hot100_lyrics_df)
     # filtered_hot100_lyrics_0error_df.to_parquet(HOT100_WITH_LYRICS_OUTPUT, index=False)
-    filtered_hot100_lyrics_0none_df = retry_batch_none(filtered_hot100_lyrics_0error_df)
-    filtered_hot100_lyrics_0none_0error_df = retry_batch_errors(filtered_hot100_lyrics_0none_df)
-    filtered_hot100_lyrics_0none_0error_df = filtered_hot100_lyrics_0none_0error_df[
-        filtered_hot100_lyrics_0none_0error_df["plain_lyrics"].notna()
-    ]
-    filtered_hot100_lyrics_0none_0error_df.to_parquet(HOT100_WITH_LYRICS_OUTPUT, index=False)
+
+    # filtered_hot100_lyrics_0error_df = retry_batch_error(filtered_hot100_lyrics_df)
+    # filtered_hot100_lyrics_0none_df = retry_batch_none(filtered_hot100_lyrics_0error_df)
+    # filtered_hot100_lyrics_0none_0error_df = retry_batch_error(filtered_hot100_lyrics_0none_df)
+    # filtered_hot100_lyrics_0none_0error_df = filtered_hot100_lyrics_0none_0error_df[filtered_hot100_lyrics_0none_0error_df["plain_lyrics"].notna()]
+    # filtered_hot100_lyrics_0none_0error_df.to_parquet(HOT100_WITH_LYRICS_OUTPUT, index=False)
+
+    filtered_hot100_lyrics_df = retry_batch_lyrics(filtered_hot100_lyrics_df)
+    filtered_hot100_lyrics_df.to_parquet(HOT100_WITH_LYRICS_OUTPUT, index=False)
     print(f"Saved final results to {HOT100_WITH_LYRICS_OUTPUT}.")
