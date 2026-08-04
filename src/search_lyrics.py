@@ -67,22 +67,26 @@ def search_song_lyrics(
     return result
 
 
-def load_checkpoint(songs_df: pd.DataFrame) -> pd.DataFrame:
-    """Load an existing checkpoint, or initialize a new result dataframe."""
-    if CHECKPOINT_OUTPUT.exists():
-        result_df = pd.read_parquet(CHECKPOINT_OUTPUT)
-        print(f"Resuming {len(result_df)} records from {CHECKPOINT_OUTPUT}.")
-        return result_df
+def load_checkpoint(songs_df: pd.DataFrame, resume: bool = False) -> pd.DataFrame:
+    """Resume loading data from an existing checkpoint, or loading data from scratch."""
+    checkpoint_df = pd.DataFrame()
+    num_chpt = 0
+
+    if resume and CHECKPOINT_OUTPUT.exists():
+        checkpoint_df = pd.read_parquet(CHECKPOINT_OUTPUT)
+        num_chpt = len(checkpoint_df)
+        print(f"Resuming {num_chpt} records from {CHECKPOINT_OUTPUT}.")
 
     lyrics_df = songs_df.copy()
     lyrics_df["plain_lyrics"] = pd.NA
+    lyrics_df = pd.concat[checkpoint_df, lyrics_df.iloc[num_chpt:]]
 
     return lyrics_df
 
 
 def save_checkpoint(lyrics_df: pd.DataFrame) -> None:
     """Save the current progress."""
-    lyrics_df.to_parquet(CHECKPOINT_OUTPUT, index=False)
+    lyrics_df.to_parquet(CHECKPOINT_OUTPUT, index=False)  # rewrite
 
 
 def search_batch_lyrics(
@@ -112,6 +116,7 @@ def search_batch_lyrics(
                 print(f"Saved checkpoints of {count} songs at {CHECKPOINT_OUTPUT}.")
 
     save_checkpoint(lyrics_df)
+    print(f"Saved checkpoints of {count} songs at {CHECKPOINT_OUTPUT}.")
     return lyrics_df
 
 
@@ -257,3 +262,4 @@ if __name__ == "__main__":
     filtered_hot100_lyrics_df = retry_batch_lyrics(filtered_hot100_lyrics_df)
     filtered_hot100_lyrics_df.to_parquet(HOT100_WITH_LYRICS_OUTPUT, index=False)
     print(f"Saved final results to {HOT100_WITH_LYRICS_OUTPUT}.")
+    CHECKPOINT_OUTPUT.unlink()
