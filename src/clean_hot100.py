@@ -63,7 +63,10 @@ def clean_hot100_song(
         hot100_song_df.sort_values(["title", "performer", "chart_week"])
         .groupby(["title", "performer"], as_index=False)
         .agg(
-            chart_weeks=("chart_week", lambda s: s.dt.strftime("%Y-%m-%d").tolist()),  # ordered from earlier sort_values
+            chart_weeks=(
+                "chart_week",
+                lambda s: s.dt.strftime("%Y-%m-%d").tolist(),
+            ),  # ordered from earlier sort_values
             wks_on_chart=("wks_on_chart", "max"),
             peak_pos=("peak_pos", "min"),
         )
@@ -85,17 +88,17 @@ def filter_hot100_song(
     end_wk: str | pd.Timestamp = END_WEEK,
     save: bool = True,
 ) -> pd.DataFrame:
-    
+
     start_wk_str = start_wk
     end_wk_str = end_wk
-    
+
     if isinstance(start_wk, pd.Timestamp):
         start_wk_str = start_wk.strftime("%Y-%m-%d")
     if isinstance(end_wk, pd.Timestamp):
         end_wk_str = end_wk.strftime("%Y-%m-%d")
 
     filtered_hot100_song_df = hot100_song_df[
-        (hot100_song_df["chart_weeks"].str[0] >= start_wk_str) #compare with YYYY-MM-DD format str
+        (hot100_song_df["chart_weeks"].str[0] >= start_wk_str)  # compare with YYYY-MM-DD format str
         & (hot100_song_df["chart_weeks"].str[-1] < end_wk_str)
     ]
 
