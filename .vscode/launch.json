@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "search_lyrics",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.search_lyrics",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "clean_hot100",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.clean_hot100",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
