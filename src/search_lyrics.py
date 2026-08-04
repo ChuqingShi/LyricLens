@@ -77,7 +77,7 @@ def load_checkpoint(songs_df: pd.DataFrame, resume_pos: int = 0) -> pd.DataFrame
 
     lyrics_df = songs_df.copy()
     lyrics_df["plain_lyrics"] = pd.NA
-    lyrics_df = pd.concat([checkpoint_df.iloc[:resume_pos], lyrics_df.iloc[resume_pos:]])
+    lyrics_df = pd.concat([checkpoint_df.iloc[:resume_pos], lyrics_df.iloc[resume_pos:]], ignore_index=True)
     print(f"Loading {len(lyrics_df) - resume_pos} records from scratch.")
 
     return lyrics_df
@@ -225,12 +225,12 @@ def retry_batch_lyrics(
         lyrics_ready_df = retry_batch_error(lyrics_ready_df)  # could result in new None
         lyrics_ready_df, lyrics_removing_df = retry_batch_none(lyrics_ready_df)
 
-        lyrics_removed_df = pd.concat([lyrics_removed_df, lyrics_removing_df])
+        lyrics_removed_df = pd.concat([lyrics_removed_df, lyrics_removing_df], ignore_index=True)
 
         save_checkpoint(lyrics_ready_df)
 
     lyrics_errors_df = lyrics_ready_df[lyrics_ready_df["plain_lyrics"] == "<error>"]
-    lyrics_removed_df = pd.concat([lyrics_removed_df, lyrics_errors_df])
+    lyrics_removed_df = pd.concat([lyrics_removed_df, lyrics_errors_df], ignore_index=True)
     print(
         f"Retry finished. A total of {len(lyrics_removed_df)} songs are removed because no lyrics could be retrieved from LRCLib."
     )
