@@ -4,10 +4,9 @@ from tqdm.auto import tqdm
 import re
 import random
 import time
-from pathlib import Path
-from .clean_hot100 import OUTPUT_DIR, filter_hot100_song
+from .clean_hot100 import filter_hot100_song
+from .config import PROCESSED_DATA_DIR, CHECKPOINT_OUTPUT
 
-CHECKPOINT_OUTPUT = Path(OUTPUT_DIR) / "checkpoint.parquet"
 HOT100_LYRICS_OUTPUT_NAME = "hot-100-lyrics-new.parquet"
 
 LRCLIB_SEARCH_URL = "https://lrclib.net/api/search"
@@ -285,8 +284,8 @@ def generate_batch_lyrics(
     print(f"Successfully retrieved lyrics for {len(lyrics_ready_df)} songs.")
 
     if save:
-        lyrics_ready_df.to_parquet(Path(OUTPUT_DIR) / output_name, index=False)
-        print(f"Final results saved at {Path(OUTPUT_DIR) / output_name}.")
+        lyrics_ready_df.to_parquet(PROCESSED_DATA_DIR / output_name, index=False)
+        print(f"Final results saved at {PROCESSED_DATA_DIR / output_name}.")
 
     print("Finalizing lyrics generation: removing intermediate checkpoint.")
     CHECKPOINT_OUTPUT.unlink()  # remove checkpoint at last no matter save or not
@@ -296,31 +295,13 @@ def generate_batch_lyrics(
 if __name__ == "__main__":
     from src.clean_hot100 import filter_hot100_song
 
-    hot100_song_df = pd.read_parquet(Path(OUTPUT_DIR) / "hot-100-song_current.parquet")
+    hot100_song_df = pd.read_parquet(PROCESSED_DATA_DIR / "hot-100-song_current.parquet")
 
     start_wk = "2020-01-01"
     end_wk = "2026-08-01"
     filtered_hot100_song_df = filter_hot100_song(hot100_song_df, start_wk=start_wk, end_wk=end_wk)
 
-    # print("Initializing lyrics generation: removing existing checkpoint.")
-    # CHECKPOINT_OUTPUT.unlink(missing_ok=True)  # clear checkpoint for a fresh start
-
     filtered_hot100_lyrics_df = generate_batch_lyrics(
         filtered_hot100_song_df,
         output_name=f"hot-100-lyrics_{start_wk}_{end_wk}.parquet",
     )
-    # HOT100_LYRICS_OUTPUT = Path(OUTPUT_DIR) / HOT100_LYRICS_OUTPUT_NAME
-    # filtered_hot100_lyrics_df = search_batch_lyrics(filtered_hot100_song_df)
-    # # filtered_hot100_lyrics_0error_df = retry_batch_error(filtered_hot100_lyrics_df)
-    # # filtered_hot100_lyrics_0error_df.to_parquet(HOT100_LYRICS_OUTPUT, index=False)
-
-    # # filtered_hot100_lyrics_0error_df = retry_batch_error(filtered_hot100_lyrics_df)
-    # # filtered_hot100_lyrics_0none_df = retry_batch_none(filtered_hot100_lyrics_0error_df)
-    # # filtered_hot100_lyrics_0none_0error_df = retry_batch_error(filtered_hot100_lyrics_0none_df)
-    # # filtered_hot100_lyrics_0none_0error_df = filtered_hot100_lyrics_0none_0error_df[filtered_hot100_lyrics_0none_0error_df["plain_lyrics"].notna()]
-    # # filtered_hot100_lyrics_0none_0error_df.to_parquet(HOT100_LYRICS_OUTPUT, index=False)
-
-    # filtered_hot100_lyrics_df = retry_batch_lyrics(filtered_hot100_lyrics_df)
-    # filtered_hot100_lyrics_df.to_parquet(HOT100_LYRICS_OUTPUT, index=False)
-    # print(f"Saved final results to {HOT100_LYRICS_OUTPUT}.")
-    # CHECKPOINT_OUTPUT.unlink()

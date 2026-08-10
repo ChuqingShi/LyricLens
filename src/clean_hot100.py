@@ -1,10 +1,7 @@
 from pathlib import Path
 import pandas as pd
 from .download_hot100 import HOT100_OUTPUT
-
-OUTPUT_DIR = Path("data/processed")
-START_WEEK = "1958-08-04"
-END_WEEK = "2026-08-01"
+from .config import PROCESSED_DATA_DIR, START_WEEK, END_WEEK
 
 
 def clean_hot100_chart(
@@ -18,9 +15,9 @@ def clean_hot100_chart(
     hot100_chart_df["last_week"] = hot100_chart_df["last_week"].replace(0, pd.NA).astype("Int64")
 
     if save:
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-        hot100_chart_df.to_parquet(OUTPUT_DIR / output_name, index=False)
-        print(f"Saved hot100_chart_df to {OUTPUT_DIR / output_name}.")
+        PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        hot100_chart_df.to_parquet(PROCESSED_DATA_DIR / output_name, index=False)
+        print(f"Saved hot100_chart_df to {PROCESSED_DATA_DIR / output_name}.")
 
     print(f"{len(hot100_chart_df)} entries loaded from {HOT100_OUTPUT}.")
 
@@ -73,9 +70,9 @@ def clean_hot100_song(
     )
 
     if save:
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-        hot100_song_df.to_parquet(OUTPUT_DIR / output_name, index=False)
-        print(f"Saved hot100_song_df to {OUTPUT_DIR / output_name}.")
+        PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        hot100_song_df.to_parquet(PROCESSED_DATA_DIR / output_name, index=False)
+        print(f"Saved hot100_song_df to {PROCESSED_DATA_DIR / output_name}.")
 
     print(f"{len(hot100_song_df)} songs recorded in {HOT100_OUTPUT}.")
 
@@ -103,13 +100,13 @@ def filter_hot100_song(
     ]
 
     if save:
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
         filtered_hot100_song_df.to_parquet(
-            OUTPUT_DIR / f"hot-100-song_{start_wk_str}_{end_wk_str}.parquet",
+            PROCESSED_DATA_DIR / f"hot-100-song_{start_wk_str}_{end_wk_str}.parquet",
             index=False,
         )
         print(
-            f"Saved filtered_hot100_song_df to {OUTPUT_DIR / f'hot-100-song_{start_wk_str}_{end_wk_str}.parquet'}."
+            f"Saved filtered_hot100_song_df to {PROCESSED_DATA_DIR / f'hot-100-song_{start_wk_str}_{end_wk_str}.parquet'}."
         )
 
     print(
@@ -123,8 +120,8 @@ def main():
 
     hot100_song_df = clean_hot100_song()
 
-    start_wk = "2000-01-01"
-    end_wk = "2026-08-01"
+    start_wk = START_WEEK
+    end_wk = END_WEEK
     filtered_hot100_song_df = filter_hot100_song(hot100_song_df, start_wk, end_wk)
 
 

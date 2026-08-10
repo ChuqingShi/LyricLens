@@ -1,8 +1,8 @@
 from pathlib import Path
 import requests
+from .config import HOT100_OUTPUT
 
 HOT100_URL = "https://raw.githubusercontent.com/utdata/rwd-billboard-data/refs/heads/main/data-out/hot-100-current.csv"
-HOT100_OUTPUT = Path("data/raw/hot-100-current.csv")
 
 
 def download_hot100() -> None:
