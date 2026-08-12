@@ -5,9 +5,7 @@ import re
 import random
 import time
 from .clean_hot100 import filter_hot100_song
-from .config import PROCESSED_DATA_DIR, CHECKPOINT_OUTPUT
-
-HOT100_LYRICS_OUTPUT_NAME = "hot-100-lyrics-new.parquet"
+from .config import PROCESSED_DATA_DIR, CHECKPOINT_OUTPUT, HOT100_LYRICS_OUTPUT_NAME
 
 LRCLIB_SEARCH_URL = "https://lrclib.net/api/search"
 HEADERS = {"User-Agent": "LyricLens/0.1.0 (your-email@example.com)"}
@@ -293,15 +291,15 @@ def generate_batch_lyrics(
 
 
 if __name__ == "__main__":
-    from src.clean_hot100 import filter_hot100_song
+    from .config import START_WEEK, END_WEEK
+    from src.download_hot100 import download_hot100
+    from src.clean_hot100 import clean_hot100_song, filter_hot100_song
 
-    hot100_song_df = pd.read_parquet(PROCESSED_DATA_DIR / "hot-100-song_current.parquet")
+    download_hot100()
+    hot100_song_df = clean_hot100_song()
 
-    start_wk = "2020-01-01"
-    end_wk = "2026-08-01"
+    start_wk = START_WEEK
+    end_wk = END_WEEK
     filtered_hot100_song_df = filter_hot100_song(hot100_song_df, start_wk=start_wk, end_wk=end_wk)
 
-    filtered_hot100_lyrics_df = generate_batch_lyrics(
-        filtered_hot100_song_df,
-        output_name=f"hot-100-lyrics_{start_wk}_{end_wk}.parquet",
-    )
+    filtered_hot100_lyrics_df = generate_batch_lyrics(filtered_hot100_song_df)
