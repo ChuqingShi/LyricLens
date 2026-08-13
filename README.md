@@ -9,13 +9,13 @@
 
 * Extra 0: PostgreSQL? dlt?
 
-3. chunk lyrics and store data (later)
+3. chunk lyrics and store data ✅
 
 4. keyword search with minsearch (optional)
 
 * Extra 0: sqlitesearch
 
-5. ➡️ embedding and vector search
+5. ➡️ embedding and vector search (next)
 
 * Extra 0 : minsearch
 * Extra 1: sqlitesearch
