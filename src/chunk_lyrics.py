@@ -17,8 +17,8 @@ def chunk_song_lyrics(lyrics: str) -> tuple[list[str], list[int]]:
     num_lines = [1 + section.count("\n") for section in sections]
 
     # error handling: if no valid lyrics or lyrics is not in ready-to-chunk format
-    if len(sections) <= 1:
-        raise ValueError("Could not split lyrics into multiple sections.")
+    if len(sections) == 1:  # never 0 guaranteed by split
+        ValueError("Could not split lyrics into multiple sections.")
     return (sections, num_lines)
 
 
@@ -40,17 +40,15 @@ def merge_short_sections(
 
     section_id = 1  # len(list) > 1 is guaranteed by error handling for the first run
     while section_id < len(sections):
-        while num_lines[section_id] < min_lines:
+        while (
+            num_lines[section_id] < min_lines
+        ):  # if section_id == 0, num_lines[section_id] >= min_lines is guaranteed by earlier discussion
             short_section = sections.pop(section_id)
             num_short_lines = num_lines.pop(section_id)
             section_id = section_id - 1
             sections[section_id] = sections[section_id] + "\n\n" + short_section
             num_lines[section_id] = num_lines[section_id] + num_short_lines
 
-            if section_id == 0:
-                raise ValueError(
-                    "All lyrics were merged into one section. Please set min_lines smaller."
-                )
         section_id = section_id + 1
 
     return (sections, num_lines)
