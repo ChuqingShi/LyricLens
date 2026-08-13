@@ -161,11 +161,11 @@ def build_chunk_documents(lyrics_df: pd.DataFrame) -> list[dict]:
                         "song_id": song_id,
                         "title": row["title"],
                         "performer": row["performer"],
+                        "wks_on_chart": row["wks_on_chart"],
+                        "peak_pos": row["peak_pos"],
                         "section_id": f"{section_id}/{num_sections}",
                         "section": sections[section_id],
                         "num_lines": num_lines[section_id],
-                        # "wks_on_chart": row["wks_on_chart"],
-                        # "peak_pos": row["peak_pos"],
                     }
                 )
         except Exception as e:
@@ -180,8 +180,13 @@ def build_chunk_documents(lyrics_df: pd.DataFrame) -> list[dict]:
 
 
 if __name__ == "__main__":
-    from src.config import HOT100_LYRICS_OUTPUT
+    from src.config import HOT100_LYRICS_OUTPUT, HOT100_CHUNKS_OUTPUT
 
     filtered_hot100_lyrics_df = pd.read_parquet(HOT100_LYRICS_OUTPUT)
     documents = build_chunk_documents(filtered_hot100_lyrics_df)
-    print(f"Chunking {len(filtered_hot100_lyrics_df)} songe into {len(documents)} lyrics sections.")
+    print(f"Chunking {len(filtered_hot100_lyrics_df)} songs into {len(documents)} lyrics sections.")
+
+    import json
+
+    with open(HOT100_CHUNKS_OUTPUT, "w", encoding="utf-8") as f:
+        json.dump(documents, f, ensure_ascii=False, indent=2)
