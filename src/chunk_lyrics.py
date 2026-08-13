@@ -3,10 +3,11 @@ import re
 
 LYRICS_SECTION_SEPARATOR_PATTERN = r"\n\s*\n"  # newline + >=0 whitespace + newline
 MIN_LINES_PER_CHUNK = 4
+DEFAULT_LINES_PER_CHUNK = int(1.5 * MIN_LINES_PER_CHUNK)
 
 
 def chunk_song_lyrics(lyrics: str) -> tuple[list[str], list[int]]:
-    """The plain_lyrics has natural sections marked by LYRICS_SECTION_SEPARATOR_PATTERN.
+    """The plain_lyrics usually has natural sections marked by LYRICS_SECTION_SEPARATOR_PATTERN.
     Chunk a given song's lyrics into natural sections, and count number of lines per section."""
     sections = [
         section.strip()
@@ -16,10 +17,49 @@ def chunk_song_lyrics(lyrics: str) -> tuple[list[str], list[int]]:
 
     num_lines = [1 + section.count("\n") for section in sections]
 
-    # error handling: if no valid lyrics or lyrics is not in ready-to-chunk format
-    if len(sections) == 1:  # never 0 guaranteed by split
-        ValueError("Could not split lyrics into multiple sections.")
+    # # error handling: if lyrics is not in ready-to-chunk format
+    # if len(sections) == 1:  # never 0 guaranteed by split
+    #     raise ValueError("Could not split lyrics into multiple sections.")
     return (sections, num_lines)
+
+
+def force_chunk_song_lyrics(
+    lyrics: str, lines_per_chunk: int = DEFAULT_LINES_PER_CHUNK
+) -> tuple[list[str], list[int]]:
+    """Fallback for lyrics without predefined section separators.
+    Force-chunk lyrics into sections of `lines_per_chunk` lines each.
+    """
+    lines = [line.strip() for line in lyrics.splitlines() if line.strip()]
+
+    if len(lines) <= lines_per_chunk:
+        print("Lyrics are too short to chunk.")
+        return ["\n".join(lines)], [len(lines)]
+
+    else:
+        sections = []
+        num_lines = []
+        for i in range(0, len(lines), lines_per_chunk):
+            chunk = lines[i : i + lines_per_chunk]
+            sections.append("\n".join(chunk))
+            num_lines.append(len(chunk))
+
+        # # error handling: if lyrics is not in ready-to-chunk format
+        # if len(sections) == 1 and len(lines) > lines_per_chunk:  # never 0 guaranteed by splitlines
+        #     raise ValueError(
+        #         "All lyrics are force-chunked into one section. Please set lines_per_chunk smaller."
+        #     )
+        return sections, num_lines
+
+
+def chunk_song_lyrics_with_fallback(
+    lyrics: str, lines_per_chunk: int = DEFAULT_LINES_PER_CHUNK
+) -> tuple[list[str], list[int]]:
+    sections, num_lines = chunk_song_lyrics(lyrics)
+
+    if len(sections) == 1:  # never 0 guaranteed by chunk_song_lyrics
+        return force_chunk_song_lyrics(lyrics, lines_per_chunk)
+
+    return sections, num_lines
 
 
 def merge_short_sections(
@@ -61,15 +101,16 @@ def build_chunk_documents(lyrics_df: pd.DataFrame) -> list[dict]:
     for song_id, row in lyrics_df.iterrows():
 
         try:
-            sections, num_lines = chunk_song_lyrics(row["plain_lyrics"])
-            sections, num_lines = merge_short_sections(sections, num_lines)
-        except ValueError:
+            sections, num_lines = chunk_song_lyrics_with_fallback(row["plain_lyrics"])
+            if len(sections) > 1:  # never 0 guaranteed by chunk_song_lyrics_with_fallback
+                sections, num_lines = merge_short_sections(sections, num_lines)
+        except IndexError:
             print(count)
             print(row["title"])
             print(row["performer"])
             count = count + 1
 
-        num_sections = len(sections)  # >1 guaranteed by merge_short_sections
+        num_sections = len(sections)  # coule be 1
 
         for section_id in range(num_sections):
             documents.append(
