@@ -2,6 +2,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+# data
 DATA_DIR = PROJECT_ROOT / "data"
 
 RAW_DATA_DIR = DATA_DIR / "raw"
@@ -19,4 +20,11 @@ HOT100_CHUNKS_OUTPUT_NAME = f"hot-100-chunks_{START_WEEK}_{END_WEEK}.json"
 HOT100_CHUNKS_OUTPUT = PROCESSED_DATA_DIR / HOT100_CHUNKS_OUTPUT_NAME
 
 
+# embedding
 BATCH_SIZE = 50
+
+# model
+MODEL_DIR = PROJECT_ROOT / "models"
+
+MODEL_NAME = "Xenova/all-MiniLM-L6-v2"
+MODEL_PATH = MODEL_DIR / MODEL_NAME
