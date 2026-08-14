@@ -150,22 +150,22 @@ def build_chunk_documents(lyrics_df: pd.DataFrame) -> list[dict]:
     documents = []
 
     err_count = 0
-    for song_id, row in lyrics_df.iterrows():
+    for df_song_id, row in lyrics_df.iterrows():
         try:
             sections, num_lines = chunk_song_lyrics_overall(row["plain_lyrics"])
 
-            num_sections = len(sections)
-            for section_id in range(num_sections):
+            for section_id, (section, n_lines) in enumerate(
+                zip(sections, num_lines),
+                start=1,  # starting from 1 is more natural, and consistent with PostgreSQL SERIAL generation
+            ):
                 documents.append(
                     {
-                        "song_id": song_id,
+                        "df_song_id": df_song_id,  # start from 0
                         "title": row["title"],
                         "performer": row["performer"],
-                        "wks_on_chart": row["wks_on_chart"],
-                        "peak_pos": row["peak_pos"],
-                        "section_id": f"{section_id}/{num_sections}",
-                        "section": sections[section_id],
-                        "num_lines": num_lines[section_id],
+                        "section_id": section_id,  # start from 1
+                        "section": section,
+                        "num_lines": n_lines,
                     }
                 )
         except Exception as e:
