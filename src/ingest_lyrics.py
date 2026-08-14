@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
-
-from .embeddings.embedder import Embedder
-from .embeddings.embed_texts import embed_texts
+import psycopg
 from .config import HOT100_LYRICS_OUTPUT
 
 
@@ -10,25 +8,20 @@ def load_lyrics() -> pd.DataFrame:
     return pd.read_parquet(HOT100_LYRICS_OUTPUT)
 
 
+def ingest_songs(conn: psycopg.Connection, lyrics_df: pd.DataFrame) -> dict[int, int]:
+    pass
+
+
+def ingest_documents(
+    conn,
+    documents: list[dict],
+    vectors: list[np.ndarray],
+    song_id_map: dict[int, int],
+) -> None:
+    pass
+
+
 if __name__ == "__main__":
-    from src.embeddings.download import download
-    from .chunk_lyrics import build_chunk_documents
-
-    download("Xenova/all-MiniLM-L6-v2")
-    embedder = Embedder("models/Xenova/all-MiniLM-L6-v2")
-
-    lyrics_df = load_lyrics()
-    documents = build_chunk_documents(lyrics_df)
-
-    texts = [doc["section"] for doc in documents]
-    X = embed_texts(documents, embedder)
-
-    query = "Grief after losing best friend"
-    v_query = embedder.encode(query)
-
-    scores = X.dot(v_query)
-    top5 = np.argsort(scores)[-5:][::-1]
-
-    for i in top5:
-        print(scores[i])
-        print(documents[i])
+    conn = psycopg.connect("postgresql://lyricslens:pswd@localhost:5432/lyricslensDB")
+    conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    pass
