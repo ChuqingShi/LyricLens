@@ -37,3 +37,6 @@ POSTGRES_PASSWORD = "pswd"
 POSTGRES_DB = "lyricslensDB"
 HOST = "localhost"
 HOST_PORT = "5432"
+
+# retrivial
+TOP_K = 5
