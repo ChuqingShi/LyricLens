@@ -31,14 +31,14 @@ MIN_LINES_PER_CHUNK = 4
 DEFAULT_LINES_PER_CHUNK = int(1.5 * MIN_LINES_PER_CHUNK)
 MAX_LINES_PER_CHUNK = 4 * MIN_LINES_PER_CHUNK
 
-# embedding
-BATCH_SIZE = 50
-
 # model
 MODEL_DIR = PROJECT_ROOT / "models"
 
 MODEL_NAME = "Xenova/all-MiniLM-L6-v2"
 MODEL_PATH = MODEL_DIR / MODEL_NAME
+
+# embedding
+BATCH_SIZE = 50
 
 # postgres
 POSTGRES_USER = "lyricslens"

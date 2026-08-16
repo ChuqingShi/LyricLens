@@ -58,9 +58,11 @@ src
  * chunk_lyrics.py:
  apply custom chunking to preserve natural lyric sections as much as possible, with force-chunking fallback and minimum & maximum section-length controls, and save hot 100 chunks documents.
 
- * embeddings/download.py
+ * embeddings/download.py:
+ fetch ONNX runtime model from HuggingFace. Copied from [`download.py`](https://github.com/DataTalksClub/llm-zoomcamp/blob/main/02-vector-search/embed/download.py) with minor configuration changes.
 
  * embeddings/embedder.py
+ generate embeddings with the same encode interface as sentence-transformers but none of the PyTorch weight. Copied from [`embedder.py`](https://github.com/DataTalksClub/llm-zoomcamp/blob/main/02-vector-search/embed/embedder.py) with minor configuration changes.
 
  * embeddings/embed_texts.py
 
