@@ -66,7 +66,7 @@ def aggregate_song_results(
                 "wks_on_chart": r["wks_on_chart"],
                 "peak_pos": r["peak_pos"],
                 "best_similarity": r["similarity"],  # input ordered by similarity
-                "num_matches": 1,
+                "num_matches": 0,
                 "matched_sections": [],
             }
 
