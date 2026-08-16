@@ -28,3 +28,10 @@ MODEL_DIR = PROJECT_ROOT / "models"
 
 MODEL_NAME = "Xenova/all-MiniLM-L6-v2"
 MODEL_PATH = MODEL_DIR / MODEL_NAME
+
+# postgres
+POSTGRES_USER = "lyricslens"
+POSTGRES_PASSWORD = "pswd"
+POSTGRES_DB = "lyricslensDB"
+HOST = "localhost"
+HOST_PORT = "5432"
