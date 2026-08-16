@@ -21,7 +21,7 @@
 
 5. ➡️ data ingestion into PostgreSQL ✅
 
-6. ➡️ vector search in PostgreSQL
+6. ➡️ vector search in PostgreSQL ✅
 
 7. search evaluation (later)
 
