@@ -1,9 +1,12 @@
 import pandas as pd
 import numpy as np
 from tqdm.auto import tqdm
+import json
 import psycopg
 from .config import (
     HOT100_LYRICS_OUTPUT,
+    HOT100_CHUNKS_OUTPUT,
+    EMBEDDINGS_OUTPUT,
     POSTGRES_USER,
     POSTGRES_PASSWORD,
     POSTGRES_DB,
@@ -109,6 +112,17 @@ def ingest_songs(conn: psycopg.Connection, lyrics_df: pd.DataFrame) -> None:
     print(f"Ingestion complete: {num_songs} songs in table songs.")
 
 
+def load_documents() -> list[dict]:
+    with open(HOT100_CHUNKS_OUTPUT, "r", encoding="utf-8") as f:
+        documents = json.load(f)
+    return documents
+
+
+def load_vectors() -> np.ndarray:
+    vectors = np.load(EMBEDDINGS_OUTPUT)
+    return vectors
+
+
 def vec_to_str(vector: np.ndarray) -> str:
     return "[" + ",".join(str(x) for x in vector) + "]"
 
@@ -116,7 +130,7 @@ def vec_to_str(vector: np.ndarray) -> str:
 def ingest_documents(
     conn,
     documents: list[dict],
-    vectors: list[np.ndarray],
+    vectors: np.ndarray,
 ) -> None:
     num_documents = conn.execute("""
         SELECT COUNT(*) 
@@ -124,6 +138,8 @@ def ingest_documents(
     """).fetchone()[0]
     print(f"Table documents currently contains {num_documents} lyrics chunk documents.")
 
+    if len(documents) != len(vectors):
+        raise ValueError(f"Expected {len(documents)} vectors, got {len(vectors)}.")
     try:
         for doc, vec in tqdm(zip(documents, vectors), total=len(documents)):
             conn.execute(
@@ -173,10 +189,14 @@ if __name__ == "__main__":
     lyrics_df = load_lyrics()
     ingest_songs(conn, lyrics_df)
 
-    documents = build_chunk_documents(lyrics_df)
-    texts = [doc["section"] for doc in documents]
-    embedder = Embedder()
-    vectors = embed_texts(texts, embedder)
+    # documents = build_chunk_documents(lyrics_df)
+    # texts = [doc["section"] for doc in documents]
+    # embedder = Embedder()
+    # vectors = embed_texts(texts, embedder)
+    # ingest_documents(conn, documents, vectors)
+
+    documents = load_documents()
+    vectors = load_vectors()
     ingest_documents(conn, documents, vectors)
 
     check_tables(conn)
