@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm.auto import tqdm
 from .embedder import Embedder
-from src.config import BATCH_SIZE
+from src.config import BATCH_SIZE, EMBEDDINGS_OUTPUT
 
 
 def embed_texts(texts: list[str], embedder: Embedder) -> list[np.ndarray]:
@@ -13,6 +13,14 @@ def embed_texts(texts: list[str], embedder: Embedder) -> list[np.ndarray]:
         vectors.extend(batch_vectors)
 
     return vectors
+
+
+def save_embeddings(vectors: list[np.ndarray]):
+    vectors_array = np.asarray(vectors, dtype=np.float32)
+    print(f"embeddings shape: {vectors_array.shape}")  # (num_documents, 384)
+
+    np.save(EMBEDDINGS_OUTPUT, vectors_array)
+    print(f"Saved embeddings to {EMBEDDINGS_OUTPUT}.")
 
 
 if __name__ == "__main__":
