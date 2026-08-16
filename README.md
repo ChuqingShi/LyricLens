@@ -23,8 +23,13 @@
 
 6. ➡️ vector search in PostgreSQL ✅
 
-7. search evaluation (later)
+7. rerank song results ✅
 
-8. ➡️ RAG
+8. search evaluation (later)
 
-9. ➡️ Deploy
+9. ➡️ RAG
+
+10. Docker Containerization
+
+11. ➡️ Deploy
+
