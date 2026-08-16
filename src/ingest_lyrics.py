@@ -171,8 +171,9 @@ def create_vector_index(conn: psycopg.Connection) -> None:
     print("Creating HNSW index...")  # for ANN search
 
     conn.execute("""
-        CREATE INDEX ON documents
-        USING hnsw (embedding vector_cosine_ops); -- index the embedding column using cosine distance
+        CREATE INDEX IF NOT EXISTS documents_embedding_hnsw_idx
+        ON documents
+        USING hnsw (embedding vector_cosine_ops);
     """)
     conn.commit()
     print("HNSW index ready.")
