@@ -151,6 +151,17 @@ def ingest_documents(
     print(f"Ingestion complete: {num_documents} lyrics chunk documents in table documents.")
 
 
+def create_vector_index(conn: psycopg.Connection) -> None:
+    print("Creating HNSW index...")  # for ANN search
+
+    conn.execute("""
+        CREATE INDEX ON documents
+        USING hnsw (embedding vector_cosine_ops); -- index the embedding column using cosine distance
+    """)
+    conn.commit()
+    print("HNSW index ready.")
+
+
 if __name__ == "__main__":
     from src.chunk_lyrics import build_chunk_documents
     from src.embeddings.embed_texts import embed_texts
@@ -169,3 +180,4 @@ if __name__ == "__main__":
     ingest_documents(conn, documents, vectors)
 
     check_tables(conn)
+    create_vector_index(conn)
