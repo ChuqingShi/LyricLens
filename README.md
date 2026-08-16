@@ -38,15 +38,22 @@
 ## datasource
 
 * Billboard Hot 100 data: 
-[UTData RWD Billboard GitHub Repository](https://github.com/utdata/rwd-billboard-data), contains Billboard weekly hot100 on chart from 1958-08-04 until current week.
+[UT RWD Billboard Dataset](https://github.com/utdata/rwd-billboard-data), contains Billboard weekly hot100 on chart from 1958-08-04 until current week.
+
+* Lyrics:
+[LRCLIB](https://lrclib.net), supports free API calls.
 
 ## files
 src
  
  * download_hot100.py: 
- download Billboard Hot 100 datasets from [UTData RWD Billboard GitHub Repository](https://github.com/utdata/rwd-billboard-data) where charts are scrapted weekly to keep update.
+ download Billboard Hot 100 datasets from [UT RWD Billboard Dataset](https://github.com/utdata/rwd-billboard-data) where charts are scrapted weekly to keep update.
  
  * clean_hot100.py: 
- clean, filter, and save hot 100 song data
+ clean, filter, and save hot 100 song data.
+
+ * search_lyrics.py: 
+ search lyrics from [LRCLIB](https://lrclib.net), generate and save hot 100 lyrics data with cleaning, checkpointing, and retries.
+
 
 

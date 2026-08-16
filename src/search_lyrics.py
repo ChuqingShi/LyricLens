@@ -4,21 +4,21 @@ from tqdm.auto import tqdm
 import re
 import random
 import time
-from .clean_hot100 import filter_hot100_song
-from .config import PROCESSED_DATA_DIR, CHECKPOINT_OUTPUT, HOT100_LYRICS_OUTPUT_NAME
+from .config import CHECKPOINT_OUTPUT, HOT100_LYRICS_OUTPUT, CHECKPOINT_EVERY, MAX_RETRIES
 
 LRCLIB_SEARCH_URL = "https://lrclib.net/api/search"
 HEADERS = {"User-Agent": "LyricLens/0.1.0 (your-email@example.com)"}
 
-PATTERN = r"\s+(?:feat(?:uring)?\.?|with|x|&)\s+"  # >=1 spaces + "feat" with optional "uring" with optional "." + >=1 spaces
+PATTERN = r"\s+(?:feat(?:uring)?\.?|with|x|&)\s+"  # >=1 spaces + "feat" with optional "uring" with optional "."/ "with"/ "x"/ "&" + >=1 spaces
 
 
 def search_song_lyrics(
     title: str, performer: str, session: requests.Session | None = None
 ) -> str | None:
-    """Search for lyrics of a song using LRCLib API.
+    """Search for a song's lyrics using LRCLib API.
     Never raise an exception,  return None if lyrics are not found, return "<error>" if there is an error.
     """
+
     # track_name = title.strip().title()
     # artist_name = (
     #     performer.strip()
@@ -73,7 +73,12 @@ def search_song_lyrics(
 
 
 def load_checkpoint(songs_df: pd.DataFrame, resume_pos: int = 0) -> pd.DataFrame:
-    """Resume loading data from an existing checkpoint, or loading data from scratch."""
+    """Load data from scratch or resume from an existing checkpoint.
+    Input:
+        `resume_pos`: Number of existing records to keep before resuming from checkpoint. Set to 0 to start from scratch.
+        Make sure songs_df and the existing checkpoint align.
+    """
+
     if resume_pos < 0:
         raise ValueError("resume_pos must not be negative.")
     elif resume_pos == 0:
@@ -98,21 +103,23 @@ def load_checkpoint(songs_df: pd.DataFrame, resume_pos: int = 0) -> pd.DataFrame
 
 
 def save_checkpoint(lyrics_df: pd.DataFrame, logging: bool = False) -> None:
-    """Save the current progress."""
+    """Save a checkpoint and optionally log the current progress."""
+
     lyrics_df.to_parquet(CHECKPOINT_OUTPUT, index=False)  # rewrite
-    num_records = sum(
-        lyrics_df["plain_lyrics"].apply(lambda x: x is not pd.NA)
-    )  # OK: all pd.NA is from fresh df
+
     if logging:
+        num_records = sum(
+            lyrics_df["plain_lyrics"].apply(lambda x: x is not pd.NA)
+        )  # OK: all pd.NA is from fresh df
         print(f"{num_records} songs with lyrics saved at {CHECKPOINT_OUTPUT}.")
 
 
 def search_batch_lyrics(
     songs_df: pd.DataFrame,
     resume_pos: int = 0,
-    checkpoint_every: int = 100,
+    checkpoint_every: int = CHECKPOINT_EVERY,
 ) -> pd.DataFrame:
-    """Download lyrics for all songs with checkpointing."""
+    """Download lyrics for all songs with request throttling and batched checkpointing."""
 
     lyrics_df = load_checkpoint(songs_df, resume_pos)
 
@@ -162,22 +169,20 @@ def retry_batch_error(lyrics_df: pd.DataFrame) -> pd.DataFrame:
                 title=row["title"], performer=row["performer"], session=session
             )
             if lyrics != "<error>":
-                lyrics_0error_df.at[index, "plain_lyrics"] = lyrics
+                lyrics_0error_df.at[index, "plain_lyrics"] = lyrics  # could be None
 
             time.sleep(random.uniform(0.2, 0.5))
 
     save_checkpoint(lyrics_0error_df)
 
-    remaining_errors = (lyrics_0error_df["plain_lyrics"] == "<error>").sum()
-    print(f"{remaining_errors} errors remain after retry.")
+    num_remaining_errors = (lyrics_0error_df["plain_lyrics"] == "<error>").sum()
+    print(f"{num_remaining_errors} errors remain after retry.")
     return lyrics_0error_df
 
 
 def primary_performer(performer: str) -> str:
-    # preformer = performer.strip().title()
-    # for sep in [" Featuring ", " With ", " X ", " & ", ", "]:
-    #     preformer = preformer.split(sep, 1)[0]
-    # return f"{preformer}*"
+    """Generate the primary performer using PATTERN"""
+
     performer = re.split(PATTERN, performer, maxsplit=1, flags=re.IGNORECASE)[0].strip()
     return f"{performer}*"
 
@@ -185,7 +190,10 @@ def primary_performer(performer: str) -> str:
 def retry_batch_none(
     lyrics_df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Retry songs whose plain_lyrics value is None."""
+    """Retry songs whose plain_lyrics value is None (missing) using a modified search.
+    Output:
+        Data with non-None lyrics and data with lyrics still None after retrying.
+    """
 
     lyrics_0none_df = lyrics_df.copy()
 
@@ -226,23 +234,29 @@ def retry_batch_none(
 
 def retry_batch_lyrics(
     lyrics_df: pd.DataFrame,
-    max_retry_time: int = 5,
+    max_retries: int = MAX_RETRIES,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Retry songs whose plain_lyrics value is '<error>' or None in a loop."""
+    """Retry songs whose plain_lyrics value is '<error>' or None.
+    After each retry, '<error>' entries either remain '<error>', return valid lyrics, or return None.
+    After each retry, None entries either remain None and get removed, or saved otherwise.
+    After all retries, remaining '<error>' entries are removed.
+    Output:
+        Data with valid lyrics and data with unresolved None or "<error>" after max_retries.
+    """
 
     lyrics_ready_df, lyrics_removed_df = retry_batch_none(lyrics_df)
 
-    if max_retry_time < 1:
-        raise ValueError("max_retry_time must be at least 1.")
+    if max_retries < 1:
+        raise ValueError("max_retries must be at least 1.")
 
-    for retry_number in range(1, max_retry_time + 1):
+    for retry_number in range(1, max_retries + 1):
         error_indices = lyrics_ready_df.index[lyrics_ready_df["plain_lyrics"] == "<error>"]
 
         if error_indices.empty:
             print("There are no request errors.")
             break
 
-        print(f"Retrying {retry_number}/{max_retry_time}: ")
+        print(f"Retrying {retry_number}/{max_retries}: ")
 
         lyrics_ready_df = retry_batch_error(lyrics_ready_df)  # could result in new None
         lyrics_ready_df, lyrics_removing_df = retry_batch_none(lyrics_ready_df)
@@ -258,7 +272,7 @@ def retry_batch_lyrics(
 
     lyrics_removed_df = pd.concat([lyrics_removed_df, lyrics_errors_df], ignore_index=True)
     print(
-        f"{len(lyrics_errors_df)} songs still have request errors after {max_retry_time} retries, and are removed."
+        f"{len(lyrics_errors_df)} songs still have request errors after {max_retries} retries, and are removed."
     )
     print(
         f"Retry finished. A total of {len(lyrics_removed_df)} songs are removed because no lyrics could be retrieved from LRCLib."
@@ -269,37 +283,46 @@ def retry_batch_lyrics(
 def generate_batch_lyrics(
     songs_df: pd.DataFrame,
     resume_pos: int = 0,
-    checkpoint_every: int = 100,
-    max_retry_time: int = 5,
+    checkpoint_every: int = CHECKPOINT_EVERY,
+    max_retries: int = MAX_RETRIES,
     save: bool = True,
-    output_name: str = HOT100_LYRICS_OUTPUT_NAME,
 ) -> pd.DataFrame:
+    """Generate and save hot 100 lyrics data."""
+
     lyrics_df = search_batch_lyrics(
         songs_df, resume_pos=resume_pos, checkpoint_every=checkpoint_every
     )
-    lyrics_ready_df, _ = retry_batch_lyrics(lyrics_df, max_retry_time=max_retry_time)
+    lyrics_ready_df, _ = retry_batch_lyrics(lyrics_df, max_retries=max_retries)
     lyrics_ready_df = lyrics_ready_df.sort_values(["title", "performer"])
     print(f"Successfully retrieved lyrics for {len(lyrics_ready_df)} songs.")
 
     if save:
-        lyrics_ready_df.to_parquet(PROCESSED_DATA_DIR / output_name, index=False)
-        print(f"Final results saved at {PROCESSED_DATA_DIR / output_name}.")
+        lyrics_ready_df.to_parquet(HOT100_LYRICS_OUTPUT, index=False)
+        print(f"Final results saved at {HOT100_LYRICS_OUTPUT}.")
 
     print("Finalizing lyrics generation: removing intermediate checkpoint.")
     CHECKPOINT_OUTPUT.unlink()  # remove checkpoint at last no matter save or not
     return lyrics_ready_df
 
 
-if __name__ == "__main__":
-    from .config import START_WEEK, END_WEEK
-    from src.download_hot100 import download_hot100
-    from src.clean_hot100 import clean_hot100_song, filter_hot100_song
+def main():
+    # from src.download_hot100 import download_hot100
+    # from src.clean_hot100 import clean_hot100_song, filter_hot100_song
+    # from .config import START_WEEK, END_WEEK
 
-    download_hot100()
-    hot100_song_df = clean_hot100_song()
+    # download_hot100()
+    # hot100_song_df = clean_hot100_song()
+
+    from src.clean_hot100 import filter_hot100_song
+    from src.config import HOT100_SONG_OUTPUT, START_WEEK, END_WEEK
+
+    hot100_song_df = pd.read_parquet(HOT100_SONG_OUTPUT)
 
     start_wk = START_WEEK
     end_wk = END_WEEK
     filtered_hot100_song_df = filter_hot100_song(hot100_song_df, start_wk=start_wk, end_wk=end_wk)
-
     filtered_hot100_lyrics_df = generate_batch_lyrics(filtered_hot100_song_df)
+
+
+if __name__ == "__main__":
+    main()
