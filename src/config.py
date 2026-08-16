@@ -39,4 +39,5 @@ HOST = "localhost"
 HOST_PORT = "5432"
 
 # retrivial
-TOP_K = 5
+TOP_K_SONGS = 5
+TOP_K_SECTIONS = 4 * TOP_K_SONGS
