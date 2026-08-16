@@ -1,5 +1,7 @@
 import pandas as pd
 import re
+import json
+from src.config import HOT100_CHUNKS_OUTPUT
 
 LYRICS_SECTION_SEPARATOR_PATTERN = r"\n\s*\n"  # newline + >=0 whitespace + newline
 MIN_LINES_PER_CHUNK = 4
@@ -179,6 +181,12 @@ def build_chunk_documents(lyrics_df: pd.DataFrame) -> list[dict]:
     return documents
 
 
+def save_chunk_documents(documents: list[dict]) -> None:
+    with open(HOT100_CHUNKS_OUTPUT, "w", encoding="utf-8") as f:
+        json.dump(documents, f, ensure_ascii=False, indent=2)
+    print(f"Saved chunk documents to {HOT100_CHUNKS_OUTPUT}.")
+
+
 if __name__ == "__main__":
     from src.config import HOT100_LYRICS_OUTPUT, HOT100_CHUNKS_OUTPUT
 
@@ -186,7 +194,4 @@ if __name__ == "__main__":
     documents = build_chunk_documents(filtered_hot100_lyrics_df)
     print(f"Chunking {len(filtered_hot100_lyrics_df)} songs into {len(documents)} lyrics sections.")
 
-    import json
-
-    with open(HOT100_CHUNKS_OUTPUT, "w", encoding="utf-8") as f:
-        json.dump(documents, f, ensure_ascii=False, indent=2)
+    save_chunk_documents(documents)
