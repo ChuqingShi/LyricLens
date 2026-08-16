@@ -32,3 +32,28 @@ class Embedder:
         if normalize:
             pooled = pooled / np.linalg.norm(pooled, axis=1, keepdims=True)
         return pooled
+
+
+def main():
+    embedder = Embedder(MODEL_PATH)
+
+    texts = [
+        "Grief after losing best friend",
+        "Feeling excited about a new relationship",
+        "Missing someone who moved away",
+        "Frustrated about getting laid off",
+    ]
+
+    X = embedder.encode_batch(texts)
+    print(f"Number of vectors: {len(X)}")
+    print(f"Embedding shape: {X[0].shape}")
+
+    query = "post breakup"
+    query_embedding = embedder.encode(query)
+    scores = X.dot(query_embedding)
+    i = scores.argmax()
+    print(f"'{query}' is closest to '{texts[i]}' with similarity score {scores[i]}")
+
+
+if __name__ == "__main__":
+    main()
