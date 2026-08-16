@@ -33,3 +33,14 @@
 
 11. ➡️ Deploy
 
+---
+
+## datasource
+
+Billboard Hot 100 data: [UTData RWD Billboard GitHub Repository](https://github.com/utdata/rwd-billboard-data), contains Billboard weekly hot100 on chart from 1958-08-04 until current week.
+
+## files
+src
+ 
+ * download_hot100.py: download Billboard Hot 100 datasets from [UTData RWD Billboard GitHub Repository](https://github.com/utdata/rwd-billboard-data) where charts are scrapted weekly to keep update.
+ 
