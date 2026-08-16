@@ -1,4 +1,3 @@
-from pathlib import Path
 import pandas as pd
 from .download_hot100 import HOT100_OUTPUT
 from .config import PROCESSED_DATA_DIR, START_WEEK, END_WEEK
@@ -7,6 +6,9 @@ from .config import PROCESSED_DATA_DIR, START_WEEK, END_WEEK
 def clean_hot100_chart(
     save: bool = True, output_name: str = "hot-100-chart_current.parquet"
 ) -> pd.DataFrame:
+    """Clean and save Billboard Hot 100 chart data.
+    (handling dates, sorting for readability, standardizing missing values)"""
+
     hot100_chart_df = pd.read_csv(HOT100_OUTPUT)
 
     hot100_chart_df["chart_week"] = pd.to_datetime(hot100_chart_df["chart_week"])
@@ -27,6 +29,10 @@ def clean_hot100_chart(
 def clean_hot100_song(
     save: bool = True, output_name: str = "hot-100-song_current.parquet"
 ) -> pd.DataFrame:
+    """Clean and save Billboard Hot 100 song data.
+    (removing unnecessary info, removing duplicates, generating popularity features, sorting for readability)
+    """
+
     hot100_chart_df = pd.read_csv(HOT100_OUTPUT)
     hot100_chart_df["chart_week"] = pd.to_datetime(hot100_chart_df["chart_week"])
 
@@ -85,6 +91,7 @@ def filter_hot100_song(
     end_wk: str | pd.Timestamp = END_WEEK,
     save: bool = True,
 ) -> pd.DataFrame:
+    """Filter Billboard Hot 100 song data by chart_weeks and save the result."""
 
     start_wk_str = start_wk
     end_wk_str = end_wk
