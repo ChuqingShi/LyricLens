@@ -55,5 +55,21 @@ src
  * search_lyrics.py: 
  search lyrics from [LRCLIB](https://lrclib.net), generate and save hot 100 lyrics data with cleaning, checkpointing, and retries.
 
+ * chunk_lyrics.py:
+ apply custom chunking to preserve natural lyric sections as much as possible, with force-chunking fallback and minimum & maximum section-length controls, and save hot 100 chunks documents.
+
+ * embeddings/download.py
+
+ * embeddings/embedder.py
+
+ * embeddings/embed_texts.py
+
+ * ingest_lyrics.py:
+
+ * search_pgvector.py
+
+ * rerank_songs.py
+
+
 
 
