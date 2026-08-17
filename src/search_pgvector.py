@@ -38,7 +38,7 @@ def search_sections_vector(
                 d.song_id,
                 s.title,
                 s.performer,
-                s.lyrics
+                s.lyrics,
                 s.wks_on_chart,
                 s.peak_pos,
                 d.section_id,
