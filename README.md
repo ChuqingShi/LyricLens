@@ -1,7 +1,7 @@
-# LyricsLens:
+# 🎵 LyricsLens:
 
 <div align="left">
-<span style="color: red;">Imagine this:</span>
+<span style="color: red;">Imagine this:💬</span>
 
 You have a deadline in two days. 
 
@@ -18,7 +18,7 @@ Why does “stressed” suddenly mean heartbreak? I have a deadline!
 
 
 <div align="right">
-<span style="color: red;">Now imagine this:</span>
+<span style="color: red;">Now imagine this:💬</span>
 
 You’ve just gone through a peaceful breakup. 
 
@@ -43,7 +43,7 @@ Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mo
 
 
 
-## Datasource
+## 📊 Datasource
 
 ### 1. Billboard Hot 100 Songs
 [UT RWD Billboard Dataset](https://github.com/utdata/rwd-billboard-data): weekly Hot 100 charts from 1958-08-04 to present.
@@ -53,7 +53,7 @@ Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mo
 
 
 
-## Challenges & Approaches
+## ⛳️ Challenges & Approaches
 
 ### 1. Billboard Hot 100 data is messy, so lyrics search is hard.
 
@@ -87,7 +87,7 @@ Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mo
 
 
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Category | Tools |
 |---|---|
@@ -102,7 +102,7 @@ Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mo
 
 
 
-## Files
+## 📁 Files
 
 All under `src/`:
 
@@ -123,7 +123,7 @@ All under `src/`:
 
  
 
- ## Run local in CLI
+ ## 💻 Run local in CLI
 
  1. `git clone https://github.com/ChuqingShi/LyricLens.git`
  2. `uv sync`
@@ -150,7 +150,7 @@ All under `src/`:
 
  
  
- ## MVP development checklist:
+ ## 📋 MVP development checklist:
 
 1. ➡️ get hot-100-song data with song title and performer and store data ✅
 
