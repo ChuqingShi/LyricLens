@@ -71,6 +71,7 @@ src
  set up PostgreSQL database connection, ingest songs and documents, and build vector search index.
 
  * search_pgvector.py
+ check the vector search index, search vectors with pgvector, and aggregate results by song.
 
  * rerank_songs.py
 

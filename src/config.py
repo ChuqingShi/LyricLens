@@ -48,6 +48,6 @@ POSTGRES_DB = "lyricslensDB"
 HOST = "localhost"
 HOST_PORT = "5432"
 
-# retrivial
+# search_pgvector.py
 TOP_K_SONGS = 5
 TOP_K_SECTIONS = 4 * TOP_K_SONGS
