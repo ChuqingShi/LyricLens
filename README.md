@@ -74,6 +74,7 @@ src
  check the vector search index, search vectors with pgvector, and aggregate results by song.
 
  * rerank_songs.py
+ calculate a weighted total score from popularity and vector similarity features, then rerank top_k_songs by the score.
 
 
 
