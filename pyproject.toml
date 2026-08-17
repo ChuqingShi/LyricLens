@@ -10,6 +10,7 @@ dependencies = [
     "pandas>=3.0.5",
     "psycopg[binary]>=3.3.4",
     "pyarrow>=25.0.0",
+    "pydantic>=2.13.4",
     "requests>=2.34.2",
     "tokenizers>=0.23.1",
     "tqdm>=4.70.0",
