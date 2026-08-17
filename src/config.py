@@ -13,8 +13,8 @@ HOT100_SONG_OUTPUT = PROCESSED_DATA_DIR / "hot-100-song_current.parquet"
 CHECKPOINT_OUTPUT = PROCESSED_DATA_DIR / "checkpoint.parquet"
 
 # filter time period
-START_WEEK = "2020-01-01"
-END_WEEK = "2026-08-01"
+START_WEEK = "2020-01-01"  # <- Recommended to customize
+END_WEEK = "2026-08-01"  # <- Recommended to customize
 HOT100_LYRICS_OUTPUT_NAME = f"hot-100-lyrics_{START_WEEK}_{END_WEEK}.parquet"
 HOT100_LYRICS_OUTPUT = PROCESSED_DATA_DIR / HOT100_LYRICS_OUTPUT_NAME
 HOT100_CHUNKS_OUTPUT_NAME = f"hot-100-chunks_{START_WEEK}_{END_WEEK}.json"
@@ -27,19 +27,19 @@ CHECKPOINT_EVERY = 100
 MAX_RETRIES = 5
 
 # chunk_lyrics.py
-MIN_LINES_PER_CHUNK = 4
+MIN_LINES_PER_CHUNK = 4  # <- Recommended to customize
 DEFAULT_LINES_PER_CHUNK = int(1.5 * MIN_LINES_PER_CHUNK)
 MAX_LINES_PER_CHUNK = 4 * MIN_LINES_PER_CHUNK
 
 # model
 MODEL_DIR = PROJECT_ROOT / "models"
 
-MODEL_NAME = "Xenova/all-MiniLM-L6-v2"
+MODEL_NAME = "Xenova/all-MiniLM-L6-v2"  # <- Recommended to customize
 MODEL_PATH = MODEL_DIR / MODEL_NAME
 
 # embedding
 BATCH_SIZE = 50
-EMBEDDING_DIM = 384  # change with model
+EMBEDDING_DIM = 384  # <- Remember to change this according to your model
 
 # postgres
 POSTGRES_USER = "lyricslens"
@@ -49,8 +49,8 @@ HOST = "localhost"
 HOST_PORT = "5432"
 
 # search_pgvector.py
-TOP_K_SONGS = 5
+TOP_K_SONGS = 5  # <- Recommended to customize
 TOP_K_SECTIONS = 4 * TOP_K_SONGS
 
 # rag.py
-NUM_SONG_RECOMMENDATIONS = 2
+NUM_SONG_RECOMMENDATIONS = 2  # <- Recommended to customize
