@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from src.embeddings.embedder import Embedder
+from src.feedback import ensure_feedback_table, log_feedback
 from src.ingest_postgres import connect_db
 from src.rag import RAGPgVector
 
@@ -25,7 +26,10 @@ def get_openai_client():
 
 @st.cache_resource
 def get_db_connection():
-    return connect_db()
+    conn = connect_db()
+    conn.autocommit = True
+    ensure_feedback_table(conn)
+    return conn
 
 
 st.title("🎵 LyricLens")
@@ -61,8 +65,26 @@ if st.button("Find songs", type="primary") and query:
             st.error(f"{e} Run the ingest step first: `python -m src.ingest_postgres`.")
             st.stop()
 
-    for i, rec in enumerate(recommendations, start=1):
-        with st.container(border=True):
+    st.session_state.search_id = st.session_state.get("search_id", 0) + 1
+    st.session_state.query = query
+    st.session_state.recommendations = recommendations
+
+if "recommendations" in st.session_state:
+    conn = get_db_connection()
+    search_id = st.session_state.search_id
+    result_query = st.session_state.query
+    recommendations = st.session_state.recommendations
+
+    cols = st.columns(len(recommendations))
+    for i, (col, rec) in enumerate(zip(cols, recommendations), start=1):
+        with col, st.container(border=True):
             st.subheader(f"{i}. {rec.title} — {rec.performer}")
             st.write(rec.lyric_scene)
             st.caption(rec.reason)
+
+            feedback_key = f"feedback_{search_id}_{i}"
+            logged_key = f"{feedback_key}_logged"
+            rating = st.feedback("thumbs", key=feedback_key)
+            if rating is not None and st.session_state.get(logged_key) != rating:
+                log_feedback(conn, result_query, rec.title, rec.performer, rating)
+                st.session_state[logged_key] = rating

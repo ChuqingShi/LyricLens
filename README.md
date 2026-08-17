@@ -97,12 +97,17 @@ Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mo
 | Embeddings | `onnxruntime` + [`Xenova/all-MiniLM-L6-v2`](https://huggingface.co/Xenova/all-MiniLM-L6-v2) (no PyTorch), `tokenizers` |
 | Vector database | PostgreSQL + pgvector via `psycopg`, Dockerized |
 | LLM / RAG | `openai`, `python-dotenv` |
+| Web UI | `streamlit` |
 | Utilities | `requests`, `tqdm` |
 | Dev tools | `black`, `huggingface-hub`, `ipykernel`, `jupyter` |
 
 
 
 ## 📁 Files
+
+| File | Description |
+|---|---|
+| `app.py` (repo root) | Streamlit UI: search box, side-by-side recommendation cards, and 👍/👎 feedback on each. |
 
 All under `src/`:
 
@@ -119,6 +124,7 @@ All under `src/`:
 | `ingest_postgres.py` | Sets up PostgreSQL, ingests songs and documents, and builds the vector search index. |
 | `search_pgvector.py` | Runs vector search with pgvector and aggregates results by song. |
 | `rerank_songs.py` | Reranks top-k songs by a weighted score of popularity and vector similarity. |
+| `feedback.py` | Logs 👍/👎 ratings from the Streamlit app to a `feedback` table in Postgres. |
 | `rag.py` | Core RAG pipeline: retrieves songs, builds the LLM prompt, and generates recommendations. Based on [`rag_helper.py`](https://raw.githubusercontent.com/DataTalksClub/llm-zoomcamp/refs/heads/main/01-agentic-rag/code/rag_helper.py) and [`vector_search_pgvector.ipynb`](https://raw.githubusercontent.com/DataTalksClub/llm-zoomcamp/refs/heads/main/02-vector-search/code/vector_search_pgvector.ipynb). |
 
  
@@ -156,7 +162,7 @@ All under `src/`:
 
  1. Add `OPENAI_API_KEY`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` to a `.env` file in the project root.
  2. `docker compose up --build`
- 3. Open [localhost:8501](http://localhost:8501) and start chatting with your assistant!
+ 3. Open [localhost:8501](http://localhost:8501) and start chatting with your assistant! Rate each recommendation with 👍/👎 — ratings are logged to a `feedback` table in Postgres.
  4. `docker compose down` to stop (add `-v` to also wipe the Postgres volume).
 
  On first run, the app container waits for Postgres, then automatically runs the ingest step before serving — later runs skip straight to serving.
