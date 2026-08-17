@@ -51,3 +51,6 @@ HOST_PORT = "5432"
 # search_pgvector.py
 TOP_K_SONGS = 5
 TOP_K_SECTIONS = 4 * TOP_K_SONGS
+
+# rag.py
+NUM_SONG_RECOMMENDATIONS = 2

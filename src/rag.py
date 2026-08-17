@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from .search_pgvector import search_sections_vector, aggregate_vector_results
 from .rerank_songs import rerank_songs
-from .config import TOP_K_SECTIONS, TOP_K_SONGS
+from .config import TOP_K_SECTIONS, TOP_K_SONGS, NUM_SONG_RECOMMENDATIONS
 
 
 class SongRecommendation(BaseModel):
@@ -15,11 +15,11 @@ class SongRecommendations(BaseModel):
     recommendations: list[SongRecommendation]
 
 
-INSTRUCTIONS = INSTRUCTIONS = """
+INSTRUCTIONS = INSTRUCTIONS = f"""
 You are a poetic and perceptive song recommender.
 
-Select exactly two distinct songs from the provided context that best match the user's requested vibe, feeling, or occasion. 
-Order them from best to second-best match based on how well their lyrics match the user's request.
+Select exactly {NUM_SONG_RECOMMENDATIONS} distinct songs from the provided context that best match the user's requested vibe, feeling, or occasion. 
+Order the recommendations from best to worst match based on how well their lyrics match the user's request.
 
 Choose the songs based ONLY on the meaning, emotional tone, themes, imagery, and overall vibe conveyed by their lyrics. 
 Use only the provided context.
@@ -65,11 +65,9 @@ class RAGPgVector:
     def search(
         self, query, num_section_results=TOP_K_SECTIONS, num_song_results=TOP_K_SONGS
     ) -> list[dict]:
-        with self.conn:
-            top_k_sections = search_sections_vector(
-                query, self.embedder, self.conn, num_section_results
-            )
-
+        top_k_sections = search_sections_vector(
+            query, self.embedder, self.conn, num_section_results
+        )
         top_k_songs = aggregate_vector_results(top_k_sections, num_song_results)
         new_top_k_songs = rerank_songs(top_k_songs)
         # [
@@ -131,7 +129,34 @@ class RAGPgVector:
 
 
 def main():
-    pass
+    from dotenv import load_dotenv
+    from openai import OpenAI
+    from src.embeddings.embedder import Embedder
+    from src.ingest_postgres import connect_db
+
+    from src.rag import RAGPgVector
+
+    load_dotenv()
+    openai_client = OpenAI()
+    embedder = Embedder()
+
+    with connect_db() as conn:
+        lyriclens_assistant = RAGPgVector(
+            conn=conn,
+            embedder=embedder,
+            llm_client=openai_client,
+        )
+        query = input("How are you feeling, and what do you want to feel?\n")
+        song_recommendations = lyriclens_assistant.rag(query)
+
+    print("\n==========Running LyricsLens===========\n")
+    for i, song_rec in enumerate(song_recommendations, start=1):
+        print(f"Song Recommendation # {i}")
+        print(f"title: {song_rec.title}")
+        print(f"performer: {song_rec.performer}")
+        print(f"lyric_scene: {song_rec.lyric_scene}")
+        print(f"reason: {song_rec.reason}")
+        print()
 
 
 if __name__ == "__main__":
