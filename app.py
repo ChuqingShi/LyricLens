@@ -88,7 +88,11 @@ if "recommendations" in st.session_state:
 
             feedback_key = f"feedback_{search_id}_{i}"
             logged_key = f"{feedback_key}_logged"
-            rating = st.feedback("thumbs", key=feedback_key)
-            if rating is not None and st.session_state.get(logged_key) != rating:
+            already_rated = logged_key in st.session_state
+            rating = st.feedback("thumbs", key=feedback_key, disabled=already_rated)
+            if not already_rated and rating is not None:
                 log_feedback(conn, result_query, rec.title, rec.performer, rating)
                 st.session_state[logged_key] = rating
+                already_rated = True
+            if already_rated:
+                st.caption("✅ Feedback recorded")
