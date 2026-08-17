@@ -13,8 +13,7 @@ wheels/
 .venv
 
 # data files
-data/raw/*
-data/processed/*
+data/*
 
 # model files
 models/
