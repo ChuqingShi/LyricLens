@@ -14,6 +14,7 @@ dependencies = [
     "pydantic>=2.13.4",
     "python-dotenv>=1.2.3",
     "requests>=2.34.2",
+    "streamlit>=1.59.1",
     "tokenizers>=0.23.1",
     "tqdm>=4.70.0",
 ]

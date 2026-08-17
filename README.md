@@ -150,6 +150,19 @@ All under `src/`:
 
  
  
+ ## 🐳 Run with Docker
+
+ Requires `data/processed/*` to already exist locally (steps 3-7 above) — Docker only handles ingest + serving, not the scraping/embedding pipeline.
+
+ 1. Add `OPENAI_API_KEY`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` to a `.env` file in the project root.
+ 2. `docker compose up --build`
+ 3. Open [localhost:8501](http://localhost:8501) and start chatting with your assistant!
+ 4. `docker compose down` to stop (add `-v` to also wipe the Postgres volume).
+
+ On first run, the app container waits for Postgres, then automatically runs the ingest step before serving — later runs skip straight to serving.
+
+ 
+ 
  ## 📋 MVP development checklist:
 
 1. ➡️ get hot-100-song data with song title and performer and store data ✅
@@ -178,7 +191,7 @@ All under `src/`:
 
 9. ➡️ RAG ✅
 
-10. Docker Containerization
+10. ➡️ Docker Containerization ✅
 
 11. ➡️ Deploy
 

@@ -1,0 +1,31 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lyricslens}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pswd}
+      POSTGRES_DB: ${POSTGRES_DB:-lyricslensDB}
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lyricslens} -d ${POSTGRES_DB:-lyricslensDB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      HOST: db
+    volumes:
+      - ./data/processed:/app/data/processed:ro
+    ports:
+      - "8501:8501"
+
+volumes:
+  pgvector_data:

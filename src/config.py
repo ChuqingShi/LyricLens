@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -42,11 +43,11 @@ BATCH_SIZE = 50
 EMBEDDING_DIM = 384  # <- Remember to change this according to your model
 
 # postgres
-POSTGRES_USER = "lyricslens"
-POSTGRES_PASSWORD = "pswd"
-POSTGRES_DB = "lyricslensDB"
-HOST = "localhost"
-HOST_PORT = "5432"
+POSTGRES_USER = os.getenv("POSTGRES_USER", "lyricslens")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "pswd")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "lyricslensDB")
+HOST = os.getenv("HOST", "localhost")
+HOST_PORT = os.getenv("HOST_PORT", "5432")
 
 # search_pgvector.py
 TOP_K_SONGS = 5  # <- Recommended to customize

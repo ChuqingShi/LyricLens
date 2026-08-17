@@ -1,0 +1,12 @@
+.venv/
+.git/
+.vscode/
+notebooks/
+data/raw/
+data/processed/
+models/
+.env
+__pycache__/
+*.py[oc]
+*.ipynb
+.DS_Store
