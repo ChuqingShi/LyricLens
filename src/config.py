@@ -39,6 +39,7 @@ MODEL_PATH = MODEL_DIR / MODEL_NAME
 
 # embedding
 BATCH_SIZE = 50
+EMBEDDING_DIM = 384  # change with model
 
 # postgres
 POSTGRES_USER = "lyricslens"

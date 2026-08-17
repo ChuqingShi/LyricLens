@@ -12,11 +12,14 @@ from .config import (
     POSTGRES_DB,
     HOST,
     HOST_PORT,
+    EMBEDDING_DIM,
 )
 
 
-def setup_postgres() -> psycopg.Connection:
-    print("Connecting to PostgreSQL...")
+def connect_db() -> psycopg.Connection:
+    """Connect to the PostgreSQL database POSTGRES_DB and return the connection."""
+
+    print(f"Connecting to PostgreSQL database {POSTGRES_DB}...")
     conn = psycopg.connect(
         dbname=POSTGRES_DB,
         user=POSTGRES_USER,
@@ -26,15 +29,19 @@ def setup_postgres() -> psycopg.Connection:
         connect_timeout=5,
     )
     print("Connected!")
-
-    conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
-    conn.commit()
-    print("pgvector extension ready!")
-
     return conn
 
 
-def prepare_tables(conn: psycopg.Connection) -> None:
+def setup_db(conn: psycopg.Connection) -> None:
+    """Set up the pgvector extension."""
+
+    conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    print("pgvector extension ready!")
+
+
+def create_tables(conn: psycopg.Connection) -> None:
+    """Create the songs and documents tables if they do not exist."""
+
     print("Preparing database tables...")
     conn.execute("DROP TABLE IF EXISTS documents;")
     conn.execute("DROP TABLE IF EXISTS songs;")
@@ -46,24 +53,25 @@ def prepare_tables(conn: psycopg.Connection) -> None:
             wks_on_chart INTEGER,
             peak_pos INTEGER
         );
-    """)
-    conn.execute("""
+        """)
+    conn.execute(f"""
         CREATE TABLE documents (
             document_id SERIAL PRIMARY KEY,
             song_id INTEGER REFERENCES songs(song_id) ON DELETE CASCADE,
             section_id INTEGER,
             section TEXT,
             num_lines INTEGER,
-            embedding VECTOR(384),
+            embedding VECTOR({EMBEDDING_DIM}),
 
             UNIQUE (song_id, section_id)
         );
-    """)
-    conn.commit()
+        """)
     print("Database tables ready.")
 
 
 def check_tables(conn: psycopg.Connection) -> tuple[int, int]:
+    """Check current num_songs and num_documents in tables."""
+
     num_songs, num_documents = conn.execute("""
         SELECT
             (SELECT COUNT(*) FROM songs) AS num_songs,
@@ -74,56 +82,63 @@ def check_tables(conn: psycopg.Connection) -> tuple[int, int]:
 
 
 def load_lyrics() -> pd.DataFrame:
+    """Load stored lyrics from HOT100_LYRICS_OUTPUT."""
+
     return pd.read_parquet(HOT100_LYRICS_OUTPUT)
 
 
 def ingest_songs(conn: psycopg.Connection, lyrics_df: pd.DataFrame) -> None:
+    """Ingest song metadata into the songs table.
+    song_id follows the lyrics_df index and is inconsistent with build_chunk_documents.
+    """
+
     num_songs = conn.execute("""
         SELECT COUNT(*) 
         FROM songs;
     """).fetchone()[0]
     print(f"Table songs currently contains {num_songs} songs.")
 
-    print(f"Ingesting {len(lyrics_df)} songs into table songs...")
-    try:
-        for df_song_id, row in tqdm(lyrics_df.iterrows(), total=len(lyrics_df)):
-            conn.execute(
-                """
-                INSERT INTO songs (song_id, title, performer, wks_on_chart, peak_pos)
-                VALUES (%s, %s, %s, %s, %s)
-                """,
-                (
-                    df_song_id,
-                    row["title"],
-                    row["performer"],
-                    row["wks_on_chart"],
-                    row["peak_pos"],
-                ),
-            )
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
+    print(f"Ingesting {len(lyrics_df)} songs into the songs table...")
+    for df_song_id, row in tqdm(lyrics_df.iterrows(), total=len(lyrics_df)):
+        conn.execute(
+            """
+            INSERT INTO songs (song_id, title, performer, wks_on_chart, peak_pos)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (
+                df_song_id,
+                row["title"],
+                row["performer"],
+                row["wks_on_chart"],
+                row["peak_pos"],
+            ),
+        )
 
     num_songs = conn.execute("""
         SELECT COUNT(*) 
         FROM songs;
     """).fetchone()[0]
-    print(f"Ingestion complete: {num_songs} songs in table songs.")
+    print(f"Ingestion completed: {num_songs} songs in the songs table.")
 
 
 def load_documents() -> list[dict]:
+    """Load documents from HOT100_CHUNKS_OUTPUT"""
+
     with open(HOT100_CHUNKS_OUTPUT, "r", encoding="utf-8") as f:
         documents = json.load(f)
     return documents
 
 
 def load_vectors() -> np.ndarray:
+    """Load lyrics chunk embeddings from EMBEDDINGS_OUTPUT"""
+
     vectors = np.load(EMBEDDINGS_OUTPUT)
     return vectors
 
 
 def vec_to_str(vector: np.ndarray) -> str:
+    """Convert a NumPy vector to a pgvector string."""
+
     return "[" + ",".join(str(x) for x in vector) + "]"
 
 
@@ -132,73 +147,67 @@ def ingest_documents(
     documents: list[dict],
     vectors: np.ndarray,
 ) -> None:
+    """Ingest lyrics chunks, their metadata, and embeddings into the documents table with dimension mismatch error handling."""
+
     num_documents = conn.execute("""
         SELECT COUNT(*) 
         FROM documents;
     """).fetchone()[0]
     print(f"Table documents currently contains {num_documents} lyrics chunk documents.")
 
+    print(f"Ingesting {len(documents)} lyrics chunk documents into the table documents...")
     if len(documents) != len(vectors):
         raise ValueError(f"Expected {len(documents)} vectors, got {len(vectors)}.")
-    try:
-        for doc, vec in tqdm(zip(documents, vectors), total=len(documents)):
-            conn.execute(
-                """
-                INSERT INTO documents (song_id, section_id, section, num_lines, embedding)
-                VALUES (%s, %s, %s, %s, %s::vector)
-                """,
-                (
-                    doc["df_song_id"],
-                    doc["section_id"],
-                    doc["section"],
-                    doc["num_lines"],
-                    vec_to_str(vec),
-                ),
-            )
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
+
+    for doc, vec in tqdm(zip(documents, vectors), total=len(documents)):
+        conn.execute(
+            """
+            INSERT INTO documents (song_id, section_id, section, num_lines, embedding)
+            VALUES (%s, %s, %s, %s, %s::vector)
+            """,
+            (
+                doc["df_song_id"],
+                doc["section_id"],
+                doc["section"],
+                doc["num_lines"],
+                vec_to_str(vec),
+            ),
+        )
 
     num_documents = conn.execute("""
         SELECT COUNT(*) 
         FROM documents;
     """).fetchone()[0]
-    print(f"Ingestion complete: {num_documents} lyrics chunk documents in table documents.")
+    print(f"Ingestion completed: {num_documents} lyrics chunk documents in the documents table.")
 
 
 def create_vector_index(conn: psycopg.Connection) -> None:
-    print("Creating HNSW index...")  # for ANN search
+    """Create an HNSW index on embeddings in the `documents` table for vector search."""
 
+    print("Creating HNSW index...")  # for ANN search
     conn.execute("""
         CREATE INDEX IF NOT EXISTS documents_embedding_hnsw_idx
         ON documents
         USING hnsw (embedding vector_cosine_ops);
     """)
-    conn.commit()
     print("HNSW index ready.")
 
 
-if __name__ == "__main__":
-    from src.chunk_lyrics import build_chunk_documents
-    from src.embeddings.embed_texts import embed_texts
-    from src.embeddings.embedder import Embedder
-
-    conn = setup_postgres()
-    prepare_tables(conn)
-
+def main():
     lyrics_df = load_lyrics()
-    ingest_songs(conn, lyrics_df)
-
-    # documents = build_chunk_documents(lyrics_df)
-    # texts = [doc["section"] for doc in documents]
-    # embedder = Embedder()
-    # vectors = embed_texts(texts, embedder)
-    # ingest_documents(conn, documents, vectors)
-
     documents = load_documents()
     vectors = load_vectors()
-    ingest_documents(conn, documents, vectors)
 
-    check_tables(conn)
-    create_vector_index(conn)
+    with connect_db() as conn:  # automatically take care of commit(), rollback(), and close()
+        setup_db(conn)
+        create_tables(conn)
+
+        ingest_songs(conn, lyrics_df)
+        ingest_documents(conn, documents, vectors)
+
+        check_tables(conn)
+        create_vector_index(conn)
+
+
+if __name__ == "__main__":
+    main()

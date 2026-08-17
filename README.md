@@ -67,7 +67,8 @@ src
  * embeddings/embed_texts.py
  embed lyric chunks and save their embeddings.
 
- * ingest_lyrics.py:
+ * ingest_postgres.py:
+ set up PostgreSQL database connection, ingest songs and documents, and build vector search index.
 
  * search_pgvector.py
 
