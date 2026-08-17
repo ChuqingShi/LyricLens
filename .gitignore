@@ -13,7 +13,10 @@ wheels/
 .venv
 
 # data files
-data/*
+data/
+
+# notebooks
+notebooks/
 
 # model files
 models/
