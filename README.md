@@ -65,6 +65,7 @@ src
  generate embeddings with the same encode interface as sentence-transformers but none of the PyTorch weight. Copied from [`embedder.py`](https://github.com/DataTalksClub/llm-zoomcamp/blob/main/02-vector-search/embed/embedder.py) with minor configuration changes.
 
  * embeddings/embed_texts.py
+ embed lyric chunks and save their embeddings.
 
  * ingest_lyrics.py:
 
