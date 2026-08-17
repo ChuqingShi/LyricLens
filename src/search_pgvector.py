@@ -38,6 +38,7 @@ def search_sections_vector(
                 d.song_id,
                 s.title,
                 s.performer,
+                s.lyrics
                 s.wks_on_chart,
                 s.peak_pos,
                 d.section_id,
@@ -72,6 +73,7 @@ def aggregate_vector_results(
                 "song_id": song_id,
                 "title": r["title"],
                 "performer": r["performer"],
+                "lyrics": r["lyrics"],
                 "wks_on_chart": r["wks_on_chart"],
                 "peak_pos": r["peak_pos"],
                 "best_vector_similarity": r[

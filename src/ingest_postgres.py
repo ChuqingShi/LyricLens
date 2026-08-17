@@ -50,6 +50,7 @@ def create_tables(conn: psycopg.Connection) -> None:
             song_id INTEGER PRIMARY KEY,
             title TEXT,
             performer TEXT,
+            lyrics TEXT,
             wks_on_chart INTEGER,
             peak_pos INTEGER
         );
@@ -102,13 +103,14 @@ def ingest_songs(conn: psycopg.Connection, lyrics_df: pd.DataFrame) -> None:
     for df_song_id, row in tqdm(lyrics_df.iterrows(), total=len(lyrics_df)):
         conn.execute(
             """
-            INSERT INTO songs (song_id, title, performer, wks_on_chart, peak_pos)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO songs (song_id, title, performer, lyrics, wks_on_chart, peak_pos)
+            VALUES (%s, %s, %s, %s, %s, %s)
             """,
             (
                 df_song_id,
                 row["title"],
                 row["performer"],
+                row["plain_lyrics"],
                 row["wks_on_chart"],
                 row["peak_pos"],
             ),
