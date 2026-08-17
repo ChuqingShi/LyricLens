@@ -107,7 +107,7 @@ Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mo
 
 | File | Description |
 |---|---|
-| `app.py` (repo root) | Streamlit UI: search box, side-by-side recommendation cards, and 👍/👎 feedback on each. |
+| `app.py` (repo root) | Streamlit UI: search box, side-by-side recommendation cards, a Spotify search link, and 👍/👎 feedback on each. |
 
 All under `src/`:
 
@@ -162,10 +162,26 @@ All under `src/`:
 
  1. Add `OPENAI_API_KEY`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` to a `.env` file in the project root.
  2. `docker compose up --build`
- 3. Open [localhost:8501](http://localhost:8501) and start chatting with your assistant! Rate each recommendation with 👍/👎 — ratings are logged to a `feedback` table in Postgres.
+ 3. Open [localhost:8501](http://localhost:8501) and start chatting with your assistant! Each card has a **▶ Play on Spotify** link and 👍/👎 feedback buttons.
  4. `docker compose down` to stop (add `-v` to also wipe the Postgres volume).
 
  On first run, the app container waits for Postgres, then automatically runs the ingest step before serving — later runs skip straight to serving.
+
+ 
+ 
+ ## ✅ How to test it
+
+ 1. Rebuild after any code change: `docker compose up --build` (plain `docker compose up` reuses the existing image).
+ 2. In the browser, type a mood/vibe (e.g. *"post-breakup, want to sit with the sadness"*) and click **Find songs**.
+ 3. On a card, click **▶ Play on Spotify** — it opens a new tab with Spotify's search results for that title + performer.
+ 4. Click a 👍/👎 on a card — the cards should **stay visible** after rating (not disappear).
+ 5. Confirm the rating was persisted:
+    ```bash
+    docker compose exec db psql -U lyricslens -d lyricslensDB -c "select * from feedback;"
+    ```
+ 6. Run a second, different query and confirm its cards start with clean, unrated feedback buttons.
+
+ To iterate faster without rebuilding the image each time, run the UI locally instead: `uv run streamlit run app.py`, as long as a Postgres+pgvector container with the ingested data is already running and reachable at `localhost:5432`.
 
  
  
