@@ -41,6 +41,8 @@ Here comes <span style="background-color: yellow;">**LyricLens**</span>, your pe
 
 Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mood, feelings, occasion, or vibe. LyricLens uses RAG and semantic search to understand song lyrics, find songs that match what you're looking for, and recommend them with an explanation of why each song fits.
 
+⚠️ **English only:** The embedding model is intended for English text only, so queries should be written in English for best results..
+
 
 
 ## 📊 Datasource
