@@ -2,7 +2,7 @@ services:
   db:
     image: pgvector/pgvector:pg17
     env_file: .env
-    environment:
+    environment: # env_file already loads these from .env. Here are default fallbacks in case .env doesn't set one of them.
       POSTGRES_USER: ${POSTGRES_USER:-lyricslens}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pswd}
       POSTGRES_DB: ${POSTGRES_DB:-lyricslensDB}
@@ -21,11 +21,11 @@ services:
         condition: service_healthy
     env_file: .env
     environment:
-      HOST: db
+      HOST: db # override HOST "localhost" from src/config.py
     volumes:
       - ./data/processed:/app/data/processed:ro
     ports:
-      - "8501:8501"
+      - "8501:8501" # publish Streamlit's UI port to the host, so localhost:8501 reaches it in the browser
 
 volumes:
   pgvector_data:
