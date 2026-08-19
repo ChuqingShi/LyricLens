@@ -134,11 +134,13 @@ Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mo
 
  
 
- ## 💻 Run locally in CLI
+ ## 💻 Run in CLI (local)
+
+ ### First run:
 
  1. `git clone https://github.com/ChuqingShi/LyricLens.git`
  2. `uv sync`
- 3. Customize `src/config.py`, or use the defaults.
+ 3. Customize `src/config.py`, or use the defaults
  4. `uv run python -m src.download_hot100`
  5. `uv run python -m src.clean_hot100`
  6. `uv run python -m src.search_lyrics` (takes ~30-60 min with default config)
@@ -156,38 +158,45 @@ Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mo
     pgvector/pgvector:pg17
     ```
  10. `uv run python -m src.ingest_postgres`
- 11. Add your `OPENAI_API_KEY` to a `.env` file in the project root.
- 12. `uv run python -m src.rag` launches an interactive CLI. Start chatting with your assistant!
+ 11. Add your `OPENAI_API_KEY` to a `.env` file in the project root
+ 12. `uv run python -m src.rag` launches an interactive CLI. <span style="background-color: yellow;"> Start chatting with your assistant!</span>
  13. Stop the Docker container when done: `docker stop pgvector`
 
+ ### Later runs:
+ 1. `docker start pgvector` to restart the database
+ 2. `uv run python -m src.rag` to launch the app in CLI
+ 3. `docker stop pgvector` to stop the Docker container
+   
  
- 
- ## 🐳 Run locally with Docker
+ ## 🐳 Run with UI using Docker (local)
 
- This requires `data/processed/*` to already exist locally (steps 3-8 above), since Docker handles only ingestion + serving, not the data engineering + embedding pipeline.
+ This requires `data/processed/*` to already exist locally (steps 4-8 above), since Docker handles only ingestion + serving, not the data engineering + embedding pipeline.
 
  1. Add `OPENAI_API_KEY`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` to a `.env` file in the project root.
- 2. `docker compose up --build`
- 3. Open [localhost:8501](http://localhost:8501) and start chatting with your assistant! Each card has a **▶ Play on Spotify** link and 👍/👎 feedback buttons.
- 4. `docker compose down` to stop (add `-v` to also wipe the Postgres volume if you want to reset the database).
-
- On first run, the app container waits for Postgres, then automatically runs the ingest step before serving. Later runs skip straight to serving.
+ 2. `docker compose up --build`. On first run, the app container waits for Postgres, then automatically runs the ingestion before serving. Later runs skip straight to serving.
+ 3. Open [localhost:8501](http://localhost:8501) and <span style="background-color: yellow;"> start chatting with your assistant!</span> Each card has a **▶ Play on Spotify** link and 👍/👎 feedback buttons.
+ 4. To rebuild after any code change (including `src/config.py`), run `docker compose up --build` again.
+ 5. `docker compose down` to stop (add `-v` to also wipe the Postgres volume if you want to reset the database).
 
  
+ ## 🎧 Interacting with the UI
+
+ 1. Open [localhost:8501](http://localhost:8501) and type your mood/vibe/situation (e.g. *"post-breakup, want to sit with the sadness"*), and click **Find songs**. The recommendations are displayed as cards, ranked from best match, with the *title*, *performer*, a poetic description of the matching *lyrical scene* (⚠️No raw lyrics are displayed for copyright reasons), and the *reason* for recommendation.
+ 3. On a card, click **▶ Play on Spotify**. It opens a new tab with Spotify's search results for the song.
+ 4. Click 👍/👎 on a card to submit feedback. The card remains visible after rating, and submitted feedback cannot be changed.
+ 5. Ready to run another query!
  
- ## ✅ How to test it
+ 
+ <!-- ## 💾 Verifying Feedback Persistence
 
- 1. Rebuild after any code change: `docker compose up --build` (plain `docker compose up` reuses the existing image).
- 2. In the browser, type a mood/vibe (e.g. *"post-breakup, want to sit with the sadness"*) and click **Find songs**.
- 3. On a card, click **▶ Play on Spotify**. It opens a new tab with Spotify's search results for that title + performer.
- 4. Click a 👍/👎 on a card. The cards should **stay visible** after rating (not disappear).
- 5. Confirm the rating was persisted:
-    ```bash
-    docker compose exec db psql -U lyricslens -d lyricslensDB -c "select * from feedback;"
-    ```
- 6. Run a second, different query and confirm its cards start with clean, unrated feedback buttons.
+ Confirm a rating was saved to Postgres. In CLI, run
 
- To iterate faster without rebuilding the image each time, run the UI locally instead: `uv run streamlit run app.py`, as long as a Postgres+pgvector container with the ingested data is already running and reachable at `localhost:5432`.
+ ```bash
+ docker compose exec db psql -U lyricslens -d lyricslensDB -c "select * from feedback;"
+ ```
+ 
+ This only applies when running with UI using Docker. For the CLI workflow's standalone `pgvector` container, use `docker exec pgvector psql ...` instead. -->
+
 
 
 
