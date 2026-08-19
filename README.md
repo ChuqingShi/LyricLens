@@ -37,7 +37,7 @@ You want a song that matches what you’re actually feeling.
 But how do you find one?
 </div>
 
-Here comes <span style="background-color: yellow;">**LyricLens**</span>, your personal song recommender based on how you feel and what the lyrics actually say.
+Here comes 🎵 <span style="background-color: yellow;">**LyricLens**</span>, your personal song recommender based on how you feel and what the lyrics actually say.
 
 Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mood, feelings, occasion, or vibe. LyricLens uses RAG and semantic search to understand song lyrics, find songs that match what you're looking for, and recommend them with an explanation of why each song fits.
 
@@ -45,6 +45,18 @@ Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mo
 
 💡 **Query quality matters:** Recommendations relyon your query’s meaning, emotional tone, and imagery, not genre. Be specific about your mood, situation, and what you want to feel for more relevant matches.
 
+
+
+## 🎬 Demo
+
+### Using the UI
+
+https://github.com/user-attachments/assets/5350d178-f205-4256-8110-052847914146
+
+
+
+### Local Feedback Tracking
+https://github.com/user-attachments/assets/7fbaa01a-5fe9-4993-b860-e86bdb299f61
 
 
 ## 📊 Datasource
@@ -117,7 +129,6 @@ Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mo
 | `docker/entrypoint.sh` | Waits for Postgres, runs ingest only if the vector index is missing, then starts Streamlit. |
 | `.dockerignore` | Excludes local data, models, and dev files from the image build context. |
 
-
 | File (src/) | Description |
 |---|---|
 | `config.py` | Project-wide configuration. |
@@ -169,6 +180,7 @@ Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mo
  2. `uv run python -m src.rag` to launch the app in CLI
  3. `docker stop pgvector` to stop the Docker container
    
+
  
  ## 🐳 Run with UI using Docker (local)
 
@@ -179,6 +191,7 @@ Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mo
  3. Open [localhost:8501](http://localhost:8501) and <span style="background-color: yellow;"> start chatting with your assistant!</span> Each card has a **▶ Play on Spotify** link and 👍/👎 feedback buttons.
  4. To rebuild after any code change (including `src/config.py`), run `docker compose up --build` again.
  5. `docker compose down` to stop (add `-v` to also wipe the Postgres volume if you want to reset the database).
+
 
  
  ## 🎧 Interacting with the UI
