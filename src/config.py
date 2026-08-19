@@ -54,4 +54,4 @@ TOP_K_SONGS = 5  # <- Recommended to customize
 TOP_K_SECTIONS = 4 * TOP_K_SONGS
 
 # rag.py
-NUM_SONG_RECOMMENDATIONS = 2  # <- Recommended to customize
+NUM_SONG_RECOMMENDATIONS = 3  # <- Recommended to customize
