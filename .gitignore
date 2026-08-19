@@ -21,6 +21,9 @@ notebooks/
 # model files
 models/
 
+# demo videos
+demos/
+
 # Environment variables and secrets
 .env
 
