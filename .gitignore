@@ -26,6 +26,3 @@ demos/
 
 # Environment variables and secrets
 .env
-
-# my_mvp_checklist
-mvp_checklist.md
