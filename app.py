@@ -15,7 +15,7 @@ load_dotenv()
 st.set_page_config(page_title="LyricLens", page_icon="🎵")
 
 
-@st.cache_resource
+@st.cache_resource  # reusable resources
 def get_embedder():
     return Embedder()
 
@@ -76,9 +76,14 @@ if "recommendations" in st.session_state:
     result_query = st.session_state.query
     recommendations = st.session_state.recommendations
 
-    cols = st.columns(len(recommendations))
-    for i, (col, rec) in enumerate(zip(cols, recommendations), start=1):
-        with col, st.container(border=True):
+    if len(recommendations) <= 3:
+        layouts = zip(st.columns(len(recommendations)), recommendations)
+    else:
+        # Each full-width container behaves like a separate row
+        layouts = zip([st.container() for _ in recommendations], recommendations)
+
+    for i, (layout, rec) in enumerate(layouts, start=1):
+        with layout, st.container(border=True):
             st.subheader(f"{i}. {rec.title} — {rec.performer}")
             st.write(rec.lyric_scene)
             st.caption(rec.reason)
