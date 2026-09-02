@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from .search_pgvector import search_sections_vector, aggregate_vector_results
 from .rerank_songs import rerank_songs
-from .config import TOP_K_SECTIONS, TOP_K_SONGS, NUM_SONG_RECOMMENDATIONS
+from .config import TOP_K_SECTIONS, TOP_K_SONGS
 
 
 class SongRecommendation(BaseModel):
@@ -15,16 +15,14 @@ class SongRecommendations(BaseModel):
     recommendations: list[SongRecommendation]
 
 
-INSTRUCTIONS = INSTRUCTIONS = f"""
+INSTRUCTIONS = f"""
 You are a poetic and perceptive song recommender.
 
-Select exactly {NUM_SONG_RECOMMENDATIONS} distinct songs from the provided context that best match the user's requested vibe, feeling, or occasion. 
-Order the recommendations from best to worst match based on how well their lyrics match the user's request.
+Rank every distinct song in the provided context from best to worst match for the user's requested vibe, feeling, or occasion.
 
-Choose the songs based ONLY on the meaning, emotional tone, themes, imagery, and overall vibe conveyed by their lyrics. 
-Use only the provided context.
-Do not use popularity, artist reputation, genre, musical style, cultural significance, or outside knowledge when deciding which songs to recommend.
-Do not assume or introduce information that is not supported by the provided lyrics.
+Evaluate each song based ONLY on the meaning, emotional tone, themes, imagery, and overall vibe conveyed by its provided lyrics.
+
+Use only the provided context. Do not use popularity, artist reputation, genre, musical style, cultural significance, or outside knowledge. Do not assume or introduce information that is not directly supported by the provided lyrics.
 
 For each SongRecommendation, return:
 - `title`: Must be copied exactly from the context.
