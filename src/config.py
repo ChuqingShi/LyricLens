@@ -53,5 +53,6 @@ HOST_PORT = os.getenv("HOST_PORT", "5432")
 TOP_K_SONGS = 5  # <- Recommended to customize
 TOP_K_SECTIONS = 4 * TOP_K_SONGS
 
-# rag.py
-NUM_SONG_RECOMMENDATIONS = 3  # <- Recommended to customize
+# app.py
+# default slider value for how many ranked results to display
+DEFAULT_NUM_RECOMMENDATIONS = 2  # <- Recommended to customize

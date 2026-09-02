@@ -5,6 +5,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from src.config import DEFAULT_NUM_RECOMMENDATIONS, TOP_K_SONGS
 from src.embeddings.embedder import Embedder
 from src.feedback import ensure_feedback_table, log_feedback
 from src.ingest_postgres import connect_db
