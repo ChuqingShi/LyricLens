@@ -28,6 +28,8 @@ def search_song_lyrics(
     #     .replace(" X ", " ")
     #     .replace(" & ", " ")
     # )  # format featuring artists, and collaborators
+
+    # maximize LRCLIB search recall
     track_name = title.strip()
     artist_name = re.sub(
         PATTERN, " ", performer, flags=re.IGNORECASE
@@ -213,7 +215,7 @@ def retry_batch_none(
 
         for index in tqdm(none_indices):
             row = lyrics_0none_df.loc[index]
-            performer_retry = primary_performer(row["performer"])
+            performer_retry = primary_performer(row["performer"])  # last-resort LRCLIB retry
             lyrics = search_song_lyrics(
                 title=row["title"], performer=performer_retry, session=session
             )

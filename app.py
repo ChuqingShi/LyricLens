@@ -120,6 +120,7 @@ if "recommendations" in st.session_state:
             st.caption(rec.reason)
 
             spotify_query = quote(f"{rec.title} {rec.performer}")
+            # Link to all Spotify search results for user review; no parsing needed.
             st.link_button("▶ Play on Spotify", f"https://open.spotify.com/search/{spotify_query}")
 
             feedback_key = f"feedback_{search_id}_{i}"

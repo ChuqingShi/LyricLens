@@ -44,6 +44,8 @@ def clean_hot100_song(
         ["title", "performer", "chart_week", "wks_on_chart"]
     )
 
+    # match by exact "title" & "performer", define row-level song identity
+
     # remove duplicates
     hot100_song_df = hot100_song_df.groupby(
         ["title", "performer", "chart_week"], as_index=False
