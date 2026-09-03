@@ -49,7 +49,37 @@ query = st.text_input(
     placeholder="e.g. stressed about a deadline, need a peaceful breakup song...",
 )
 
-if st.button("Find songs", type="primary") and query:
+col1, _, col2 = st.columns([2, 1, 2], gap="small", vertical_alignment="center")
+
+with col1:
+    find_clicked = st.button("Find songs", type="primary")
+
+with col2:
+    label1_col, slider_col, label2_col = st.columns([2, 9, 2], vertical_alignment="center")
+
+    with label1_col:
+        st.markdown(
+            '<span style="font-size:1rem; white-space:nowrap;">Show</span>',
+            unsafe_allow_html=True,
+        )
+
+    with slider_col:
+        num_recommendations = st.slider(
+            "Number of songs to display",
+            min_value=1,
+            max_value=TOP_K_SONGS,
+            value=DEFAULT_NUM_RECOMMENDATIONS,
+            label_visibility="collapsed",
+        )
+
+    with label2_col:
+        st.markdown(
+            '<span style="font-size:1rem; white-space:nowrap;">songs</span>',
+            unsafe_allow_html=True,
+        )
+
+
+if find_clicked and query:
     try:
         embedder = get_embedder()
         openai_client = get_openai_client()
@@ -75,7 +105,7 @@ if "recommendations" in st.session_state:
     conn = get_db_connection()
     search_id = st.session_state.search_id
     result_query = st.session_state.query
-    recommendations = st.session_state.recommendations
+    recommendations = st.session_state.recommendations[:num_recommendations]
 
     if len(recommendations) <= 3:
         layouts = zip(st.columns(len(recommendations)), recommendations)
