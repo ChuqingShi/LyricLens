@@ -4,15 +4,23 @@ from .rerank_songs import rerank_songs
 from .config import TOP_K_SECTIONS, TOP_K_SONGS
 
 
-class SongRecommendation(BaseModel):
+class LLMSongRecommendation(BaseModel):
     title: str
     performer: str
     lyric_scene: str
     reason: str
 
 
-class SongRecommendations(BaseModel):
-    recommendations: list[SongRecommendation]
+class LLMSongRecommendations(BaseModel):
+    llm_recommendations: list[LLMSongRecommendation]
+
+
+class SongRecommendation(BaseModel):
+    song_id: str
+    title: str
+    performer: str
+    lyric_scene: str
+    reason: str
 
 
 INSTRUCTIONS = f"""
@@ -108,22 +116,49 @@ class RAGPgVector:
         context = self.build_context(search_results)
         return self.prompt_template.format(request=query, context=context)
 
-    def llm(self, prompt):
+    def llm(self, prompt) -> list[LLMSongRecommendation]:
         input_messages = [
             {"role": "developer", "content": self.instructions},
             {"role": "user", "content": prompt},
         ]
         response = self.llm_client.responses.parse(
-            model=self.model, input=input_messages, text_format=SongRecommendations
+            model=self.model, input=input_messages, text_format=LLMSongRecommendations
         )
 
-        return response.output_parsed.recommendations
+        return response.output_parsed.llm_recommendations
 
-    def rag(self, query):
+    def attach_song_ids(
+        self, llm_recommendations: list[LLMSongRecommendation], search_results: list[dict]
+    ) -> list[SongRecommendation]:
+        """Attach each recommendation's stable song_id, looked up from the search results.
+        Not asked of the LLM itself: an opaque id is exactly what an LLM tends to garble, unlike the title/performer text.
+        """
+
+        song_ids_by_key = {(s["title"], s["performer"]): s["song_id"] for s in search_results}
+
+        recommendations = []
+        for rec in llm_recommendations:
+            song_id = song_ids_by_key.get((rec.title, rec.performer))
+            if song_id is None:
+                raise RuntimeError(
+                    f"No matching search result for recommended song {rec.title!r} by {rec.performer!r}."
+                )
+            recommendations.append(
+                SongRecommendation(
+                    song_id=song_id,
+                    title=rec.title,
+                    performer=rec.performer,
+                    lyric_scene=rec.lyric_scene,
+                    reason=rec.reason,
+                )
+            )
+        return recommendations
+
+    def rag(self, query) -> list[SongRecommendation]:
         search_results = self.search(query)
         prompt = self.build_prompt(query, search_results)
-        answer = self.llm(prompt)
-        return answer
+        llm_recommendations = self.llm(prompt)
+        return self.attach_song_ids(llm_recommendations, search_results)
 
 
 def main():
@@ -147,9 +182,19 @@ def main():
         query = input("How are you feeling, and what do you want to feel?\n")
         song_recommendations = lyriclens_assistant.rag(query)
 
+    while True:
+        try:
+            num_display = int(input(f"How many songs do you want? (1-{TOP_K_SONGS})\n"))
+            if 1 <= num_display <= TOP_K_SONGS:
+                break
+            print(f"Please enter a number between 1 and {TOP_K_SONGS}.")
+        except ValueError:
+            print("Please enter a valid integer.")
+
     print("\n==========Running LyricsLens===========\n")
-    for i, song_rec in enumerate(song_recommendations, start=1):
+    for i, song_rec in enumerate(song_recommendations[:num_display], start=1):
         print(f"Song Recommendation # {i}")
+        print(f"song_id: {song_rec.song_id}")
         print(f"title: {song_rec.title}")
         print(f"performer: {song_rec.performer}")
         print(f"lyric_scene: {song_rec.lyric_scene}")
