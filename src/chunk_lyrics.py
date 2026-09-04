@@ -154,7 +154,7 @@ def build_chunk_documents(lyrics_df: pd.DataFrame) -> list[dict]:
     documents = []
 
     err_count = 0
-    for df_song_id, row in lyrics_df.iterrows():
+    for _, row in lyrics_df.iterrows():
         try:
             sections, num_lines = chunk_song_lyrics_overall(row["plain_lyrics"])
 
@@ -164,7 +164,7 @@ def build_chunk_documents(lyrics_df: pd.DataFrame) -> list[dict]:
             ):
                 documents.append(
                     {
-                        "df_song_id": df_song_id,  # start from 0
+                        "song_id": row["song_id"],
                         "title": row["title"],
                         "performer": row["performer"],
                         "section_id": section_id,  # start from 1

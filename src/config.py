@@ -15,7 +15,7 @@ CHECKPOINT_OUTPUT = PROCESSED_DATA_DIR / "checkpoint.parquet"
 
 # filter time period
 START_WEEK = "2020-01-01"  # <- Recommended to customize
-END_WEEK = "2026-08-01"  # <- Recommended to customize
+END_WEEK = "2026-09-01"  # <- Recommended to customize
 HOT100_SONGS_OUTPUT_NAME = f"hot-100-songs_{START_WEEK}_{END_WEEK}.parquet"
 HOT100_SONGS_OUTPUT = PROCESSED_DATA_DIR / HOT100_SONGS_OUTPUT_NAME
 HOT100_LYRICS_OUTPUT_NAME = f"hot-100-lyrics_{START_WEEK}_{END_WEEK}.parquet"
