@@ -43,14 +43,13 @@ Drawing from Billboard Hot 100 songs from 1958 to today, simply describe your mo
 
 ⚠️ **English only:** The embedding model is intended for English text only, so queries should be written in English for best results.
 
-💡 **Query quality matters:** Recommendations relyon your query’s meaning, emotional tone, and imagery, not genre. Be specific about your mood, situation, and what you want to feel for more relevant matches.
+💡 **Query quality matters:** Recommendations rely on your query’s meaning, emotional tone, and imagery, not genre. Be specific about your mood, situation, and what you want to feel for more relevant matches.
 
 
 
-## 🎬 Demo
+## 🎬 Demo (v0.1.0)
 
 ### Using the UI
-
 https://github.com/user-attachments/assets/5350d178-f205-4256-8110-052847914146
 
 
@@ -73,17 +72,20 @@ https://github.com/user-attachments/assets/7fbaa01a-5fe9-4993-b860-e86bdb299f61
 
 ### 1. Billboard Hot 100 data is messy, so lyrics search is hard.
 
-🔴 **Duplicate and ambiguous records:** songs with the same title from different artists may be completely unrelated. While different releases or remakes of the same song from the same artist can appear as separate records, even in the same chart week (**Unchained Melody** by *The Righteous Brothers*, 1990). 
+🔴 **Duplicate and ambiguous records:** songs with the same title from different artists may be completely unrelated (**23** by *Chayce Beckham* VS by *Noah Kahan* VS by *Sam Hunt*). While different releases or remakes of the same song from the same artist can appear as separate records, even in the same chart week (**Unchained Melody** by *The Righteous Brothers*, 1990). 
 > Songs are identified by <ins>title and performer</ins>, not title alone. For lyrics retrieval, releases with the same title and performer are <ins>treated as the same song</ins>. Duplicates are consolidated and popularity features <ins>re-engineered</ins> to reflect song-level rather than release-level popularity.
+
+🔴 **Inconsistent title/performer records:** the same title or performer can appear with different formatting across records, which breaks exact-match deduplication (*BossMan Dlow* VS *BossMan DLow*, *RealestK* VS *Realestk*, *Jennie* VS *JENNIE*).
+> Whitespace, case, and unicode <ins>formatting differences in title and performer are folded</ins> before comparison, then a deterministic hash of the (title, performer) pair is generated. Records sharing a `song_id` are <ins>treated as duplicates and removed</ins>.
 
 🔴 **Popularity isn't comparable across eras:** Hot 100 chart rules have changed over time, making raw `wks_on_chart` an inconsistent popularity signal.
 > Popularity features are <ins>re-engineered for more consistent interpretation</ins> across records.
 
-🔴 **Titles/artists aren't parsed cleanly:** some records embed extra info in the title field (**"Cherry Cherry" from Hot August Night** by *Neil Diamond*).
-> Titles and artist names are <ins>combined in the lyric search query</ins>.
+🔴 **Titles/artists aren't parsed cleanly:** some records embed extra info in the title field (**"Cherry Cherry" from Hot August Night** by *Neil Diamond*). This can cause LRCLIB searches with `track_name` and `artist_name` to return no results.
+> Titles and artist names are <ins>combined</ins> as parameter `q` <ins>in the lyric search query</ins>.
 
-🔴 **Featured artists complicate matching:** performer credits may differ between the source dataset and the search database (**Feat., featuring, x, &**).
-> The <ins>primary artist is extracted</ins>, dropping featured-artist credits when it improves matching.
+🔴 **Featured artists complicate matching:** performer credits may differ between the source dataset and the search database (**Feat., featuring, x, &**). Also, including too many featured artists in the search query can cause LRCLIB to return no results.
+> <ins>Artist names are cleaned</ins> using a pattern before searching. As a last resort, the <ins>primary artist is extracted</ins>, omitting featured artists when it improves matching.
 
 🔴 **Real song names are messy:** special characters (**punchin'.the.clock**), unusual capitalization (**thanK you aIMee**), and unconventional formatting (**g n f (Give No Fxk)**) make songs difficult to search reliably.
 > Failed searches are <ins>retried</ins>; songs with no valid lyrics are <ins>logged and excluded</ins>.
@@ -133,6 +135,7 @@ https://github.com/user-attachments/assets/7fbaa01a-5fe9-4993-b860-e86bdb299f61
 |---|---|
 | `config.py` | Project-wide configuration. |
 | `download_hot100.py` | Downloads Billboard Hot 100 data from the [UT RWD Billboard Dataset](https://github.com/utdata/rwd-billboard-data), scraped weekly. |
+| `song_id.py` | Generate a deterministic song_id for each (title, performer) pair as a persisted identifier.|
 | `clean_hot100.py` | Cleans, filters, and saves Hot 100 song data. |
 | `search_lyrics.py` | Searches lyrics via [LRCLIB](https://lrclib.net) and saves them, with cleaning, checkpointing, and retries. |
 | `chunk_lyrics.py` | Chunks lyrics to preserve natural sections, with a force-chunking fallback and min/max length controls. |

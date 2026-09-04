@@ -28,6 +28,8 @@ def search_song_lyrics(
     #     .replace(" X ", " ")
     #     .replace(" & ", " ")
     # )  # format featuring artists, and collaborators
+
+    # maximize LRCLIB search recall
     track_name = title.strip()
     artist_name = re.sub(
         PATTERN, " ", performer, flags=re.IGNORECASE
@@ -213,7 +215,7 @@ def retry_batch_none(
 
         for index in tqdm(none_indices):
             row = lyrics_0none_df.loc[index]
-            performer_retry = primary_performer(row["performer"])
+            performer_retry = primary_performer(row["performer"])  # last-resort LRCLIB retry
             lyrics = search_song_lyrics(
                 title=row["title"], performer=performer_retry, session=session
             )
@@ -313,14 +315,9 @@ def main():
     # download_hot100()
     # hot100_song_df = clean_hot100_song()
 
-    from src.clean_hot100 import filter_hot100_song
-    from src.config import HOT100_SONG_OUTPUT, START_WEEK, END_WEEK
+    from src.config import HOT100_SONGS_OUTPUT
 
-    hot100_song_df = pd.read_parquet(HOT100_SONG_OUTPUT)
-
-    start_wk = START_WEEK
-    end_wk = END_WEEK
-    filtered_hot100_song_df = filter_hot100_song(hot100_song_df, start_wk=start_wk, end_wk=end_wk)
+    filtered_hot100_song_df = pd.read_parquet(HOT100_SONGS_OUTPUT)
     filtered_hot100_lyrics_df = generate_batch_lyrics(filtered_hot100_song_df)
 
 

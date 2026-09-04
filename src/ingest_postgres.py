@@ -47,7 +47,7 @@ def create_tables(conn: psycopg.Connection) -> None:
     conn.execute("DROP TABLE IF EXISTS songs;")
     conn.execute("""
         CREATE TABLE songs (
-            song_id INTEGER PRIMARY KEY,
+            song_id TEXT PRIMARY KEY,
             title TEXT,
             performer TEXT,
             lyrics TEXT,
@@ -58,7 +58,7 @@ def create_tables(conn: psycopg.Connection) -> None:
     conn.execute(f"""
         CREATE TABLE documents (
             document_id SERIAL PRIMARY KEY,
-            song_id INTEGER REFERENCES songs(song_id) ON DELETE CASCADE,
+            song_id TEXT REFERENCES songs(song_id) ON DELETE CASCADE,
             section_id INTEGER,
             section TEXT,
             num_lines INTEGER,
@@ -90,24 +90,24 @@ def load_lyrics() -> pd.DataFrame:
 
 def ingest_songs(conn: psycopg.Connection, lyrics_df: pd.DataFrame) -> None:
     """Ingest song metadata into the songs table.
-    song_id follows the lyrics_df index and is inconsistent with build_chunk_documents.
+    song_id is a deterministic hash of (title, performer) via compute_song_id, so it stays stable across re-ingestion.
     """
 
     num_songs = conn.execute("""
-        SELECT COUNT(*) 
+        SELECT COUNT(*)
         FROM songs;
     """).fetchone()[0]
     print(f"Table songs currently contains {num_songs} songs.")
 
     print(f"Ingesting {len(lyrics_df)} songs into the songs table...")
-    for df_song_id, row in tqdm(lyrics_df.iterrows(), total=len(lyrics_df)):
+    for _, row in tqdm(lyrics_df.iterrows(), total=len(lyrics_df)):
         conn.execute(
             """
             INSERT INTO songs (song_id, title, performer, lyrics, wks_on_chart, peak_pos)
             VALUES (%s, %s, %s, %s, %s, %s)
             """,
             (
-                df_song_id,
+                row["song_id"],
                 row["title"],
                 row["performer"],
                 row["plain_lyrics"],
@@ -168,7 +168,7 @@ def ingest_documents(
             VALUES (%s, %s, %s, %s, %s::vector)
             """,
             (
-                doc["df_song_id"],
+                doc["song_id"],
                 doc["section_id"],
                 doc["section"],
                 doc["num_lines"],
